@@ -28,6 +28,24 @@ func _draw() -> void:
 	for i in range(260):
 		var p := Vector2(rng.randi_range(0, 479), rng.randi_range(12, 269))
 		draw_rect(Rect2(p, Vector2(1, 1)), Pal.LIGHT_GREEN)
+	# Walled circuits: sand run-off in the corners and concrete barriers.
+	if track.wall_dist > 0.0:
+		var wd := track.wall_dist
+		for i in range(n):
+			var j := (i + 1) % n
+			var sand := absf(track.curv[i]) > track.kerb_curv
+			_quad(track.pts[i], track.pts[j], track.normals[i], track.normals[j], -wd, wd, Pal.SAND if sand else Color("#4a9140"))
+		for side in [-1.0, 1.0]:
+			for i in range(n):
+				var j := (i + 1) % n
+				var a: Vector2 = track.pts[i] + track.normals[i] * side * (wd + 1.0)
+				var b: Vector2 = track.pts[j] + track.normals[j] * side * (wd + 1.0)
+				draw_line(a, b, Pal.BLACK, 3.0)
+			for i in range(n):
+				var j := (i + 1) % n
+				var a: Vector2 = track.pts[i] + track.normals[i] * side * (wd + 1.0)
+				var b: Vector2 = track.pts[j] + track.normals[j] * side * (wd + 1.0)
+				draw_line(a, b, Pal.LIGHT_GREY if (i / 3) % 2 == 0 else Pal.WHITE, 1.0)
 	# Run-off shadow around the road.
 	for i in range(n):
 		var j := (i + 1) % n

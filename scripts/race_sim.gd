@@ -289,6 +289,19 @@ func step_car(c: Car, dt: float) -> void:
 	if hit:
 		c.vel *= 0.7
 		events.append({"type": "crash", "pos": c.pos, "power": 30.0})
+	# Barrier walls along the track (walled circuits): no cutting across.
+	if track.wall_dist > 0.0:
+		var wl := track.locate(c.pos, c.track_idx)
+		var limit := track.wall_dist - CAR_RADIUS
+		if absf(wl.y) > limit:
+			var nrm := track.normal_at(wl.x) * signf(wl.y)
+			c.pos -= nrm * (absf(wl.y) - limit)
+			var vn := c.vel.dot(nrm)
+			if vn > 0.0:
+				c.vel -= nrm * vn * 1.4
+				c.vel *= 0.92
+				if vn > 15.0:
+					events.append({"type": "crash", "pos": c.pos + nrm * CAR_RADIUS, "power": vn})
 
 
 func ai_drive(c: Car, dt: float) -> void:

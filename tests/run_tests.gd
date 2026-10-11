@@ -62,7 +62,7 @@ func _initialize() -> void:
 
 func test_track() -> void:
 	print("== track ==")
-	check(track.length > 700.0 and track.length < 1500.0, "track length %.0f px" % track.length)
+	check(track.length > 700.0 and track.length < 1800.0, "track length %.0f px" % track.length)
 	var inside := true
 	for p in track.pts:
 		if p.x < 20 or p.x > 460 or p.y < 28 or p.y > 252:
@@ -75,6 +75,40 @@ func test_track() -> void:
 		if not track.is_on_road(loc.y):
 			grid_ok = false
 	check(grid_ok, "all grid slots on asphalt")
+	if track.wall_dist > 0.0:
+		test_walls()
+
+
+func test_walls() -> void:
+	# Separate parts of the circuit must leave room for both barriers.
+	var min_gap := INF
+	var skip := int(150.0 / track.step)
+	for i in range(track.n):
+		for j in range(i + skip, track.n):
+			if track.n - (j - i) < skip:
+				continue
+			min_gap = minf(min_gap, track.pts[i].distance_to(track.pts[j]))
+	check(min_gap >= track.wall_dist * 2.0 + 2.0, "barriers of different sections never overlap (closest %.0f px)" % min_gap)
+	# A car steering hard into the barrier is stopped by it everywhere.
+	var max_lat := 0.0
+	for start in range(0, track.n, 7):
+		for dir in [-1.0, 1.0]:
+			var sim := RaceSim.new(track)
+			sim.setup(RaceSim.make_specs(["J1"]), 5)
+			sim.state = RaceSim.STATE_RACING
+			var c: RaceSim.Car = sim.cars[2]
+			var s0 := start * track.step
+			c.pos = track.point_at(s0)
+			c.heading = track.tangent_at(s0).angle()
+			c.vel = Vector2.from_angle(c.heading) * 90.0
+			c.track_idx = -1
+			c.s = s0
+			for t in range(90):
+				c.steer = dir
+				sim.step_car(c, RaceSim.TICK)
+				var loc := track.locate(c.pos, c.track_idx)
+				max_lat = maxf(max_lat, absf(loc.y))
+	check(max_lat <= track.wall_dist + 0.5, "cars cannot get past the barriers (max %.1f px, wall at %.1f px)" % [max_lat, track.wall_dist])
 
 
 func test_offline_race(human_bots: bool) -> void:

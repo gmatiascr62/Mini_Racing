@@ -1,6 +1,6 @@
 class_name Track
 extends RefCounted
-## A Mini Racing circuit ("gp" or "ovalo"). The whole track fits in the 480x270 screen.
+## A Mini Racing circuit ("gp", "ovalo" or "serpentina"). The whole track fits in the 480x270 screen.
 ## The centerline is a closed Catmull-Rom spline resampled at a uniform step,
 ## so "s" (distance along the track) maps directly to a sample index.
 
@@ -11,8 +11,20 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 175.0
 const MAX_SAFE_SPEED := 120.0
 
-const IDS := ["gp", "ovalo"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO"}
+const IDS := ["gp", "ovalo", "serpentina"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA"}
+
+## Twisty walled circuit. Starts on the bottom straight heading left.
+const SERPENTINA_CONTROL := [
+	Vector2(236, 242), Vector2(150, 240), Vector2(108, 222),
+	Vector2(84, 186), Vector2(48, 150), Vector2(38, 96), Vector2(58, 52),
+	Vector2(110, 32), Vector2(190, 30), Vector2(236, 36), Vector2(258, 60),
+	Vector2(238, 94), Vector2(190, 100), Vector2(140, 108), Vector2(118, 140),
+	Vector2(136, 174), Vector2(190, 184), Vector2(240, 170), Vector2(274, 136),
+	Vector2(306, 100), Vector2(330, 58), Vector2(370, 34), Vector2(424, 38),
+	Vector2(452, 76), Vector2(446, 124), Vector2(420, 162), Vector2(384, 190),
+	Vector2(370, 226), Vector2(336, 243), Vector2(290, 243),
+]
 
 ## Grand Prix control points, clockwise on screen. The first point sits on the
 ## main straight; the start/finish line is at s = 0.
@@ -27,6 +39,8 @@ const GP_CONTROL := [
 var id := "gp"
 var title := "GRAN PREMIO"
 var half_width := HALF_WIDTH
+## Distance from the centerline to the barrier walls (0 = no walls).
+var wall_dist := 0.0
 ## Corners sharper than this get red/white kerbs.
 var kerb_curv := 0.012
 ## Decoration: {"stand": Rect2, "pit": Rect2, "trees": Array[Vector2]}
@@ -52,6 +66,15 @@ func _init(p_id: String = "gp") -> void:
 		scenery = {
 			"stand": Rect2(196, 92, 88, 14), "pit": Rect2(196, 160, 88, 10),
 			"trees": [Vector2(160, 118), Vector2(320, 118), Vector2(160, 158), Vector2(320, 158), Vector2(24, 30), Vector2(456, 30), Vector2(24, 230), Vector2(456, 240), Vector2(240, 258)],
+		}
+	elif id == "serpentina":
+		half_width = 13.0
+		kerb_curv = 0.014
+		wall_dist = half_width + KERB_WIDTH + 5.0
+		control = SERPENTINA_CONTROL
+		scenery = {
+			"stand": Rect2(190, 206, 70, 10), "pit": Rect2(100, 64, 0, 0),
+			"trees": [Vector2(90, 80), Vector2(110, 64), Vector2(200, 135), Vector2(220, 140), Vector2(330, 130), Vector2(360, 100), Vector2(400, 92), Vector2(20, 240), Vector2(460, 250), Vector2(320, 190)],
 		}
 	else:
 		control = GP_CONTROL
