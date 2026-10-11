@@ -289,6 +289,33 @@ func step_car(c: Car, dt: float) -> void:
 	if hit:
 		c.vel *= 0.7
 		events.append({"type": "crash", "pos": c.pos, "power": 30.0})
+	# Infield barrier walls: bounce off them (no cutting across).
+	if not track.wall_segments.is_empty():
+		_collide_walls(c)
+
+
+const WALL_RADIUS := CAR_RADIUS + 1.5
+
+
+func _collide_walls(c: Car) -> void:
+	var dir := Vector2.from_angle(c.heading) * CAR_OFFSET
+	for seg in track.wall_segments:
+		var a: Vector2 = seg[0]
+		var b: Vector2 = seg[1]
+		for off in [dir, -dir]:
+			var p: Vector2 = c.pos + off
+			var q := Geometry2D.get_closest_point_to_segment(p, a, b)
+			var d := p.distance_to(q)
+			if d >= WALL_RADIUS:
+				continue
+			var nrm := (p - q) / d if d > 0.001 else (c.pos - (a + b) * 0.5).normalized()
+			c.pos += nrm * (WALL_RADIUS - d)
+			var vn := c.vel.dot(nrm)
+			if vn < 0.0:
+				c.vel -= nrm * vn * 1.4
+				c.vel *= 0.92
+				if -vn > 15.0:
+					events.append({"type": "crash", "pos": q, "power": -vn})
 
 
 func ai_drive(c: Car, dt: float) -> void:

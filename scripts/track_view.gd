@@ -71,6 +71,11 @@ func _draw() -> void:
 			var base := p0 + n0 * (-hw + c * 2.0) + t0 * (row * 2.0 - 2.0)
 			draw_primitive(PackedVector2Array([base, base + n0 * 2.0, base + n0 * 2.0 + t0 * 2.0, base + t0 * 2.0]), PackedColorArray([col, col, col, col]), PackedVector2Array())
 	_draw_scenery()
+	# Concrete barrier walls in the infield.
+	for w in track.walls:
+		draw_polyline(w, Pal.BLACK, 4.0)
+		for k in range(w.size() - 1):
+			draw_line(w[k], w[k + 1], Pal.WHITE if (k / 3) % 2 == 0 else Pal.LIGHT_GREY, 2.0)
 
 
 func _quad(a: Vector2, b: Vector2, na: Vector2, nb: Vector2, from: float, to: float, col: Color) -> void:

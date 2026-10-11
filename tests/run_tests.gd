@@ -62,7 +62,7 @@ func _initialize() -> void:
 
 func test_track() -> void:
 	print("== track ==")
-	check(track.length > 700.0 and track.length < 1500.0, "track length %.0f px" % track.length)
+	check(track.length > 700.0 and track.length < 1800.0, "track length %.0f px" % track.length)
 	var inside := true
 	for p in track.pts:
 		if p.x < 20 or p.x > 460 or p.y < 28 or p.y > 252:
@@ -75,6 +75,50 @@ func test_track() -> void:
 		if not track.is_on_road(loc.y):
 			grid_ok = false
 	check(grid_ok, "all grid slots on asphalt")
+	if not track.wall_lines.is_empty() or not track.fixed_wall_lines.is_empty():
+		test_walls()
+
+
+func test_walls() -> void:
+	check(track.wall_segments.size() > 10, "infield barrier walls exist (%d segments)" % track.wall_segments.size())
+	# Walls never touch the road or the kerbs.
+	var closest := INF
+	for w in track.walls:
+		for p in w:
+			closest = minf(closest, absf(track.locate(p).y))
+	check(closest >= track.half_width + Track.KERB_WIDTH, "walls stay off the road (closest %.1f px from the centerline)" % closest)
+	# Cars driven straight at any wall segment, from either side, never get through.
+	var crossed := 0
+	var tries := 0
+	for seg in track.wall_segments:
+		var a: Vector2 = seg[0]
+		var b: Vector2 = seg[1]
+		var nrm := (b - a).normalized().orthogonal()
+		for probe in [[0.25, 0.0], [0.5, 0.0], [0.75, 0.0], [0.5, 0.7], [0.5, -0.7]]:
+			for side in [-1.0, 1.0]:
+				var mid: Vector2 = a.lerp(b, probe[0])
+				var aim: Vector2 = (-nrm * side).rotated(probe[1])
+				# Starting points outside the playable area are impossible in a race.
+				var start: Vector2 = mid - aim * 12.0
+				if start.y < RaceSim.BOUNDS_MARGIN + 12.0 or start.x < RaceSim.BOUNDS_MARGIN + 2.0 or start.x > RaceSim.SCREEN.x - RaceSim.BOUNDS_MARGIN - 2.0:
+					continue
+				var sim := RaceSim.new(track)
+				sim.setup(RaceSim.make_specs(["J1"]), 5)
+				var c: RaceSim.Car = sim.cars[2]
+				c.pos = mid - aim * 12.0
+				c.heading = aim.angle()
+				c.vel = aim * 100.0
+				c.track_idx = -1
+				tries += 1
+				for t in range(40):
+					c.steer = 0.0
+					sim.step_car(c, RaceSim.TICK)
+					var rel := c.pos - a
+					var along := rel.dot((b - a).normalized())
+					if along > 0.0 and along < a.distance_to(b) and rel.dot(nrm) * side < 0.0:
+						crossed += 1
+						break
+	check(crossed == 0, "cars cannot drive through the walls (%d of %d attempts got through)" % [crossed, tries])
 
 
 func test_offline_race(human_bots: bool) -> void:

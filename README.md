@@ -25,8 +25,11 @@ En el menú principal, el botón **< PISTA: ... >** cambia entre:
 
 - **GRAN PREMIO**: circuito con curvas rápidas, horquillas y chicana.
 - **OVALO**: óvalo rápido y más ancho, para ir a fondo y pelear rueda a rueda.
+- **SERPENTINA**: circuito sinuoso y angosto, con **paredones** en el pasto
+  entre los tramos de pista (no se puede cortar camino de un tramo a otro: el
+  auto rebota contra la pared).
 
-![Óvalo](docs/oval.png)
+![Óvalo](docs/oval.png) ![Serpentina](docs/serpentina.png)
 
 La pista elegida se guarda en el celular. En online, la elige quien **crea** la
 partida y el servidor se la indica al que se une.

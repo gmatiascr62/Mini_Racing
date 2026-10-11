@@ -1,6 +1,6 @@
 class_name Track
 extends RefCounted
-## A Mini Racing circuit ("gp" or "ovalo"). The whole track fits in the 480x270 screen.
+## A Mini Racing circuit ("gp", "ovalo" or "serpentina"). The whole track fits in the 480x270 screen.
 ## The centerline is a closed Catmull-Rom spline resampled at a uniform step,
 ## so "s" (distance along the track) maps directly to a sample index.
 
@@ -11,8 +11,38 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 175.0
 const MAX_SAFE_SPEED := 120.0
 
-const IDS := ["gp", "ovalo"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO"}
+const IDS := ["gp", "ovalo", "serpentina"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA"}
+
+## Twisty walled circuit. Starts on the bottom straight heading left.
+const SERPENTINA_CONTROL := [
+	Vector2(236, 242), Vector2(150, 240), Vector2(108, 222),
+	Vector2(84, 186), Vector2(48, 150), Vector2(38, 96), Vector2(58, 52),
+	Vector2(110, 32), Vector2(190, 30), Vector2(236, 36), Vector2(258, 60),
+	Vector2(238, 94), Vector2(190, 100), Vector2(140, 108), Vector2(118, 140),
+	Vector2(136, 174), Vector2(190, 184), Vector2(240, 170), Vector2(274, 136),
+	Vector2(306, 100), Vector2(330, 58), Vector2(370, 34), Vector2(424, 38),
+	Vector2(452, 76), Vector2(446, 124), Vector2(420, 162), Vector2(384, 190),
+	Vector2(370, 226), Vector2(336, 243), Vector2(290, 243),
+]
+
+## Infield barriers (drawn by the player on a screenshot of the track).
+const SERPENTINA_WALLS := [
+	[Vector2(200, 67), Vector2(180, 67), Vector2(150, 67), Vector2(125, 70),
+	Vector2(100, 82), Vector2(82, 98), Vector2(72, 118), Vector2(73, 140),
+	Vector2(85, 162), Vector2(100, 180), Vector2(125, 198), Vector2(155, 213),
+	Vector2(190, 220), Vector2(225, 214), Vector2(255, 207), Vector2(280, 193),
+	Vector2(300, 177), Vector2(320, 160), Vector2(345, 138), Vector2(370, 113),
+	Vector2(392, 88)],
+	[Vector2(167, 148), Vector2(190, 142), Vector2(213, 135), Vector2(232, 125),
+	Vector2(252, 108), Vector2(272, 92), Vector2(290, 72), Vector2(305, 50),
+	Vector2(320, 30), Vector2(340, 2)],
+]
+## Walls placed exactly as drawn (not centred): closes the gap between the
+## top of the short wall and the top edge of the screen.
+const SERPENTINA_FIXED_WALLS := [
+	[Vector2(302, 44), Vector2(306, 33), Vector2(310, 22), Vector2(314, 11), Vector2(317, 4)],
+]
 
 ## Grand Prix control points, clockwise on screen. The first point sits on the
 ## main straight; the start/finish line is at s = 0.
@@ -27,11 +57,18 @@ const GP_CONTROL := [
 var id := "gp"
 var title := "GRAN PREMIO"
 var half_width := HALF_WIDTH
+## Barrier walls in the infield (polylines). Cars bounce off them, so they
+## cannot cut across from one part of the circuit to another.
+var walls: Array = []
+## Wall segments as [a, b] pairs (for collisions).
+var wall_segments: Array = []
 ## Corners sharper than this get red/white kerbs.
 var kerb_curv := 0.012
 ## Decoration: {"stand": Rect2, "pit": Rect2, "trees": Array[Vector2]}
 var scenery: Dictionary = {}
 var control: Array = []
+var wall_lines: Array = []
+var fixed_wall_lines: Array = []
 var pts := PackedVector2Array()
 var tangents := PackedVector2Array()
 var normals := PackedVector2Array()
@@ -53,6 +90,16 @@ func _init(p_id: String = "gp") -> void:
 			"stand": Rect2(196, 92, 88, 14), "pit": Rect2(196, 160, 88, 10),
 			"trees": [Vector2(160, 118), Vector2(320, 118), Vector2(160, 158), Vector2(320, 158), Vector2(24, 30), Vector2(456, 30), Vector2(24, 230), Vector2(456, 240), Vector2(240, 258)],
 		}
+	elif id == "serpentina":
+		half_width = 13.0
+		kerb_curv = 0.014
+		control = SERPENTINA_CONTROL
+		wall_lines = SERPENTINA_WALLS
+		fixed_wall_lines = SERPENTINA_FIXED_WALLS
+		scenery = {
+			"stand": Rect2(284, 205, 60, 9), "pit": Rect2(0, 0, 0, 0),
+			"trees": [Vector2(90, 80), Vector2(110, 64), Vector2(200, 135), Vector2(220, 140), Vector2(330, 130), Vector2(360, 100), Vector2(400, 92), Vector2(20, 240), Vector2(460, 250)],
+		}
 	else:
 		control = GP_CONTROL
 		scenery = {
@@ -60,6 +107,97 @@ func _init(p_id: String = "gp") -> void:
 			"trees": [Vector2(80, 110), Vector2(96, 128), Vector2(260, 120), Vector2(280, 140), Vector2(240, 205), Vector2(395, 105), Vector2(140, 236), Vector2(420, 190), Vector2(24, 230), Vector2(460, 30)],
 		}
 	_build()
+	_build_walls()
+
+
+## Builds the infield walls from rough hand-drawn lines: every point is moved
+## to the middle of the grass between the two nearest parts of the circuit,
+## then the line is smoothed, cut open wherever it would touch the road and
+## simplified to ~8 px segments.
+func _build_walls() -> void:
+	walls.clear()
+	wall_segments.clear()
+	var clear_dist := half_width + KERB_WIDTH + 3.0
+	var all_lines: Array = []
+	for line in wall_lines:
+		all_lines.append([line, true])
+	for line in fixed_wall_lines:
+		all_lines.append([line, false])
+	for entry in all_lines:
+		var line: Array = entry[0]
+		var centre: bool = entry[1]
+		# 1. Densify the drawn line (2 px steps) and centre every point.
+		var dense := PackedVector2Array()
+		for k in range(line.size() - 1):
+			var a: Vector2 = line[k]
+			var b: Vector2 = line[k + 1]
+			var steps := maxi(1, int(ceil(a.distance_to(b) / 2.0)))
+			for t in range(steps + (1 if k == line.size() - 2 else 0)):
+				var q := a.lerp(b, float(t) / steps)
+				dense.append(_centre_between_sections(q) if centre else q)
+		# 2. Smooth out the jitter from switching between nearest samples.
+		var smooth := PackedVector2Array()
+		smooth.resize(dense.size())
+		for i in range(dense.size()):
+			var acc := Vector2.ZERO
+			var cnt := 0
+			var r := 6 if centre else 0
+			for j in range(maxi(0, i - r), mini(dense.size(), i + r + 1)):
+				acc += dense[j]
+				cnt += 1
+			smooth[i] = acc / cnt
+		# 3. Cut the line open wherever it touches the road.
+		var piece := PackedVector2Array()
+		for p in smooth:
+			if absf(locate(p).y) < clear_dist:
+				if piece.size() >= 2:
+					walls.append(piece)
+				piece = PackedVector2Array()
+			else:
+				piece.append(p)
+		if piece.size() >= 2:
+			walls.append(piece)
+	# 4. Simplify the 2 px samples to ~8 px segments.
+	for i in range(walls.size()):
+		var w: PackedVector2Array = walls[i]
+		var simple := PackedVector2Array([w[0]])
+		for k in range(4, w.size() - 1, 4):
+			simple.append(w[k])
+		simple.append(w[w.size() - 1])
+		walls[i] = simple
+	for w in walls:
+		for k in range(w.size() - 1):
+			wall_segments.append([w[k], w[k + 1]])
+
+
+## Midpoint between the nearest part of the circuit and the nearest part on the
+## opposite side of p that is far away along the lap. Points with no circuit
+## on the other side (open grass) are left where they are.
+func _centre_between_sections(p: Vector2) -> Vector2:
+	var i1 := 0
+	var d1 := INF
+	for i in range(n):
+		var d := p.distance_squared_to(pts[i])
+		if d < d1:
+			d1 = d
+			i1 = i
+	var q1 := pts[i1]
+	var min_gap := int(100.0 / step)
+	var i2 := -1
+	var d2 := INF
+	for i in range(n):
+		var gap := absi(i - i1)
+		if mini(gap, n - gap) < min_gap:
+			continue
+		if (pts[i] - p).dot(q1 - p) >= 0.0:
+			continue
+		var d := p.distance_squared_to(pts[i])
+		if d < d2:
+			d2 = d
+			i2 = i
+	if i2 < 0 or d2 > 130.0 * 130.0:
+		return p
+	return (q1 + pts[i2]) * 0.5
 
 
 ## Stadium-shaped oval: two straights joined by half circles, clockwise,

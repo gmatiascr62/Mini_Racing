@@ -23,6 +23,7 @@ const GRASS := GREEN
 const GRASS_DARK := Color("#4a9140")
 const ASPHALT := DARK_GREY
 const KERB_RED := Color("#c0392b")
+const SAND := Color("#d8c48a")
 
 ## One body colour per car slot (0,1 = humans, 2..5 = CPU).
 const CAR_COLORS := [
