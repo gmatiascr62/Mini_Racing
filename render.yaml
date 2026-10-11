@@ -1,0 +1,9 @@
+# One-click deploy of the Mini Racing server on Render (https://render.com).
+# Dashboard > New > Blueprint > select this repository.
+services:
+  - type: web
+    name: mini-racing-server
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
