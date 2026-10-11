@@ -25,9 +25,9 @@ En el menú principal, el botón **< PISTA: ... >** cambia entre:
 
 - **GRAN PREMIO**: circuito con curvas rápidas, horquillas y chicana.
 - **OVALO**: óvalo rápido y más ancho, para ir a fondo y pelear rueda a rueda.
-- **SERPENTINA**: circuito sinuoso y angosto, con **paredones** a los costados
-  (no se puede cortar camino por el pasto: el auto rebota contra la pared) y
-  trampas de arena en las curvas.
+- **SERPENTINA**: circuito sinuoso y angosto, con **paredones** en el pasto
+  entre los tramos de pista (no se puede cortar camino de un tramo a otro: el
+  auto rebota contra la pared).
 
 ![Óvalo](docs/oval.png) ![Serpentina](docs/serpentina.png)
 
