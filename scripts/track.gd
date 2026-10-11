@@ -38,6 +38,11 @@ const SERPENTINA_WALLS := [
 	Vector2(252, 108), Vector2(272, 92), Vector2(290, 72), Vector2(305, 50),
 	Vector2(320, 30), Vector2(340, 2)],
 ]
+## Walls placed exactly as drawn (not centred): closes the gap between the
+## top of the short wall and the top edge of the screen.
+const SERPENTINA_FIXED_WALLS := [
+	[Vector2(302, 44), Vector2(306, 33), Vector2(310, 22), Vector2(314, 11), Vector2(317, 4)],
+]
 
 ## Grand Prix control points, clockwise on screen. The first point sits on the
 ## main straight; the start/finish line is at s = 0.
@@ -63,6 +68,7 @@ var kerb_curv := 0.012
 var scenery: Dictionary = {}
 var control: Array = []
 var wall_lines: Array = []
+var fixed_wall_lines: Array = []
 var pts := PackedVector2Array()
 var tangents := PackedVector2Array()
 var normals := PackedVector2Array()
@@ -89,6 +95,7 @@ func _init(p_id: String = "gp") -> void:
 		kerb_curv = 0.014
 		control = SERPENTINA_CONTROL
 		wall_lines = SERPENTINA_WALLS
+		fixed_wall_lines = SERPENTINA_FIXED_WALLS
 		scenery = {
 			"stand": Rect2(0, 0, 0, 0), "pit": Rect2(0, 0, 0, 0),
 			"trees": [Vector2(90, 80), Vector2(110, 64), Vector2(200, 135), Vector2(220, 140), Vector2(330, 130), Vector2(360, 100), Vector2(400, 92), Vector2(20, 240), Vector2(460, 250), Vector2(320, 190)],
@@ -111,7 +118,14 @@ func _build_walls() -> void:
 	walls.clear()
 	wall_segments.clear()
 	var clear_dist := half_width + KERB_WIDTH + 3.0
+	var all_lines: Array = []
 	for line in wall_lines:
+		all_lines.append([line, true])
+	for line in fixed_wall_lines:
+		all_lines.append([line, false])
+	for entry in all_lines:
+		var line: Array = entry[0]
+		var centre: bool = entry[1]
 		# 1. Densify the drawn line (2 px steps) and centre every point.
 		var dense := PackedVector2Array()
 		for k in range(line.size() - 1):
@@ -119,14 +133,16 @@ func _build_walls() -> void:
 			var b: Vector2 = line[k + 1]
 			var steps := maxi(1, int(ceil(a.distance_to(b) / 2.0)))
 			for t in range(steps + (1 if k == line.size() - 2 else 0)):
-				dense.append(_centre_between_sections(a.lerp(b, float(t) / steps)))
+				var q := a.lerp(b, float(t) / steps)
+				dense.append(_centre_between_sections(q) if centre else q)
 		# 2. Smooth out the jitter from switching between nearest samples.
 		var smooth := PackedVector2Array()
 		smooth.resize(dense.size())
 		for i in range(dense.size()):
 			var acc := Vector2.ZERO
 			var cnt := 0
-			for j in range(maxi(0, i - 6), mini(dense.size(), i + 7)):
+			var r := 6 if centre else 0
+			for j in range(maxi(0, i - r), mini(dense.size(), i + r + 1)):
 				acc += dense[j]
 				cnt += 1
 			smooth[i] = acc / cnt

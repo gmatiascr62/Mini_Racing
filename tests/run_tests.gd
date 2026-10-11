@@ -75,7 +75,7 @@ func test_track() -> void:
 		if not track.is_on_road(loc.y):
 			grid_ok = false
 	check(grid_ok, "all grid slots on asphalt")
-	if not track.wall_lines.is_empty():
+	if not track.wall_lines.is_empty() or not track.fixed_wall_lines.is_empty():
 		test_walls()
 
 
