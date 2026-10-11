@@ -42,7 +42,7 @@ const PERSONALITIES := [
 	# Precise in corners: uses the racing line, brakes exactly.
 	{"name": "PRECISO", "vmax": 98.0, "corner": 1.03, "gain": 4.2, "look": 0.95, "apex": 9.0, "pass_dist": 26.0, "pass_gap": 9.0, "pass_side": 13.0},
 	# Aggressive when overtaking: dives close and is happy to bump.
-	{"name": "TORO", "vmax": 99.0, "corner": 1.07, "gain": 3.3, "look": 1.0, "apex": 5.0, "pass_dist": 46.0, "pass_gap": 13.0, "pass_side": 7.0},
+	{"name": "TORO", "vmax": 99.0, "corner": 1.07, "gain": 3.3, "look": 1.0, "apex": 5.0, "pass_dist": 46.0, "pass_gap": 13.0, "pass_side": 7.0, "avoid": 0.3},
 	# Balanced.
 	{"name": "CALMO", "vmax": 98.5, "corner": 1.04, "gain": 3.4, "look": 1.0, "apex": 6.0, "pass_dist": 30.0, "pass_gap": 10.0, "pass_side": 12.0},
 ]
@@ -282,7 +282,7 @@ func ai_drive(c: Car, dt: float) -> void:
 	var dir := c.forward()
 	var right := Vector2(-dir.y, dir.x)
 	var fwd := maxf(c.vel.dot(dir), 0.0)
-	var hw := Track.HALF_WIDTH
+	var hw := track.half_width
 	# Racing line: drift toward the inside of the next corner.
 	var look := (14.0 + fwd * 0.32) * float(p["look"])
 	var k := track.curvature_at(c.s + look * 1.6)
@@ -302,17 +302,34 @@ func ai_drive(c: Car, dt: float) -> void:
 			continue
 		if o.vel.dot(dir) > fwd + 4.0:
 			continue
+		# Pass on the side we are already on, unless there is no room there.
+		var need := float(p["pass_side"]) + 4.0
 		var room_right := hw - o.lateral
 		var room_left := o.lateral + hw
-		var go_right := room_right > room_left
-		if c.ai_pass_timer > 0.0:
-			go_right = c.ai_pass_lane > o.lateral
+		var go_right := c.lateral >= o.lateral
+		if go_right and room_right < need:
+			go_right = false
+		elif not go_right and room_left < need:
+			go_right = true
 		var target := o.lateral + (float(p["pass_side"]) if go_right else -float(p["pass_side"]))
 		c.ai_pass_lane = clampf(target, -hw + 4.0, hw - 4.0)
 		c.ai_pass_timer = 0.8
 		break
 	if c.ai_pass_timer > 0.0:
 		lane = c.ai_pass_lane
+	# Side-by-side: leave room for the car alongside (TORO barely cares).
+	var avoid := float(p.get("avoid", 1.0))
+	for oc in cars:
+		var o: Car = oc
+		if o == c:
+			continue
+		var rel: Vector2 = o.pos - c.pos
+		var ahead := rel.dot(dir)
+		var side := rel.dot(right)
+		if absf(ahead) < 10.0 and absf(side) < 12.0:
+			var push := (12.0 - absf(side)) * avoid
+			lane -= push if side >= 0.0 else -push
+	lane = clampf(lane, -hw + 4.0, hw - 4.0)
 	if not c.on_road:
 		lane = 0.0
 		look *= 0.7
@@ -328,6 +345,7 @@ func ai_drive(c: Car, dt: float) -> void:
 	if absf(diff) > 0.9:
 		vt = minf(vt, 45.0)
 	c.throttle = 1.0 if fwd < minf(vt, c.vmax) else 0.0
+
 
 
 func _collide() -> void:
