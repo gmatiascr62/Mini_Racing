@@ -97,8 +97,8 @@ func _init(p_id: String = "gp") -> void:
 		wall_lines = SERPENTINA_WALLS
 		fixed_wall_lines = SERPENTINA_FIXED_WALLS
 		scenery = {
-			"stand": Rect2(0, 0, 0, 0), "pit": Rect2(0, 0, 0, 0),
-			"trees": [Vector2(90, 80), Vector2(110, 64), Vector2(200, 135), Vector2(220, 140), Vector2(330, 130), Vector2(360, 100), Vector2(400, 92), Vector2(20, 240), Vector2(460, 250), Vector2(320, 190)],
+			"stand": Rect2(284, 205, 60, 9), "pit": Rect2(0, 0, 0, 0),
+			"trees": [Vector2(90, 80), Vector2(110, 64), Vector2(200, 135), Vector2(220, 140), Vector2(330, 130), Vector2(360, 100), Vector2(400, 92), Vector2(20, 240), Vector2(460, 250)],
 		}
 	else:
 		control = GP_CONTROL
