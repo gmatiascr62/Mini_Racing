@@ -14,7 +14,8 @@ func _ready() -> void:
 	sim.setup(RaceSim.make_specs([]), 99)
 	sim.countdown = 0.01
 	var y := 104
-	ui.add("track", Rect2(150, y, 180, 18), "< PISTA: %s >" % Game.track.title, Pal.YELLOW)
+	ui.add("track", Rect2(116, y, 126, 18), "PISTA: %s" % Game.track.title, Pal.YELLOW)
+	ui.add("level", Rect2(246, y, 118, 18), "NIVEL: %s" % RaceSim.LEVEL_NAMES[Game.level], Pal.ORANGE.lightened(0.3))
 	ui.add("cpu", Rect2(150, y + 23, 180, 18), "CARRERA VS CPU", Pal.LIGHT_GREEN)
 	ui.add("create", Rect2(150, y + 46, 180, 18), "CREAR PARTIDA ONLINE", Pal.CYAN)
 	ui.add("join", Rect2(150, y + 69, 180, 18), "UNIRSE A PARTIDA", Pal.CYAN)
@@ -47,6 +48,9 @@ func _on_button(id: String) -> void:
 	match id:
 		"track":
 			Game.next_track()
+			get_tree().reload_current_scene()
+		"level":
+			Game.next_level()
 			get_tree().reload_current_scene()
 		"cpu":
 			Game.mode = "offline"

@@ -41,6 +41,7 @@ func _initialize() -> void:
 		test_track()
 		test_offline_race(false)
 		test_offline_race(true)
+	test_levels()
 	# The online test races on the oval to cover track selection over the network.
 	track = Track.new("ovalo")
 	print("== online (server + 2 clients over WebSocket) ==")
@@ -55,7 +56,7 @@ func _initialize() -> void:
 	c1.message.connect(func(m: Dictionary) -> void: _on_msg(1, m))
 	c2.message.connect(func(m: Dictionary) -> void: _on_msg(2, m))
 	c1.open("ws://127.0.0.1:%d" % PORT)
-	c1.send({"t": "create", "v": NetConfig.PROTOCOL, "laps": 1, "track": "ovalo"})
+	c1.send({"t": "create", "v": NetConfig.PROTOCOL, "laps": 1, "track": "ovalo", "level": 0})
 	_set_phase("wait_room")
 
 
@@ -110,6 +111,8 @@ func test_offline_race(human_bots: bool) -> void:
 			all_fin = false
 	check(all_fin, "all six cars completed 5 laps")
 	check(respawns <= 2, "cars do not get stuck (respawns: %d)" % respawns)
+	var max_time := track.length * 5.0 / 45.0
+	check(sim.time < max_time, "no traffic jams (race %.0f s, limit %.0f s)" % [sim.time, max_time])
 	var max_off := 0.0
 	for id in offroad:
 		max_off = maxf(max_off, offroad[id] / 60.0)
@@ -119,6 +122,22 @@ func test_offline_race(human_bots: bool) -> void:
 
 func ft(t: float) -> String:
 	return "%d:%04.1f" % [int(t) / 60, fmod(t, 60.0)]
+
+
+func test_levels() -> void:
+	print("== difficulty levels (CPU-only race on the GP) ==")
+	var winners: Array = []
+	for lvl in range(RaceSim.LEVEL_NAMES.size()):
+		var sim := RaceSim.new(Track.new("gp"))
+		sim.setup(RaceSim.make_specs([]), 3, lvl)
+		var ticks := 0
+		while sim.state != RaceSim.STATE_FINISHED and ticks < 60 * 300:
+			sim.step({})
+			ticks += 1
+		var best: float = sim.results()[0]["time"]
+		print("     %-8s winner %s" % [RaceSim.LEVEL_NAMES[lvl], ft(best)])
+		winners.append(best)
+	check(winners[0] > winners[1] and winners[1] > winners[2], "CPUs are slower on easier levels")
 
 
 func bot_steer(pos: Vector2, heading: float, speed: float, s: float) -> float:
@@ -209,6 +228,7 @@ func _physics_process(delta: float) -> bool:
 				check(int(s1["car"]) != int(s2["car"]), "players drive different cars (%d, %d)" % [s1["car"], s2["car"]])
 				check((s1["names"] as Array).size() == 6, "6 cars in the race")
 				check(str(s1.get("track", "")) == "ovalo" and str(s2.get("track", "")) == "ovalo", "both players race on the track chosen by the creator")
+				check(int(s1.get("level", -1)) == 0 and int(s2.get("level", -1)) == 0, "both players get the difficulty chosen by the creator")
 				_set_phase("race1")
 		"race1", "race2":
 			if not end1.is_empty() and not end2.is_empty():

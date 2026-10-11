@@ -5,6 +5,8 @@ const SETTINGS_PATH := "user://settings.cfg"
 
 var track: Track
 var track_id := "gp"
+## CPU difficulty: 0 FACIL, 1 NORMAL, 2 DIFICIL.
+var level := RaceSim.DEFAULT_LEVEL
 var _tracks: Dictionary = {}
 var mode := "offline"           # "offline" or "online"
 var lobby_action := "create"    # "create" or "join"
@@ -15,6 +17,7 @@ var online_car_id := 2
 var online_names: Array = []
 var online_code := ""
 var online_laps := RaceSim.DEFAULT_LAPS
+var online_level := RaceSim.DEFAULT_LEVEL
 
 
 func _ready() -> void:
@@ -71,6 +74,7 @@ func apply_start(msg: Dictionary) -> void:
 	online_car_id = int(msg.get("car", 2))
 	online_names = msg.get("names", [])
 	online_laps = int(msg.get("laps", RaceSim.DEFAULT_LAPS))
+	online_level = int(msg.get("level", RaceSim.DEFAULT_LEVEL))
 	online_code = str(msg.get("code", online_code))
 	# Servers older than the track selector do not send "track": they run the GP.
 	set_track(str(msg.get("track", "gp")), false)
@@ -87,6 +91,11 @@ func set_track(id: String, remember: bool = true) -> void:
 		track_id = id
 
 
+func next_level() -> void:
+	level = (level + 1) % RaceSim.LEVEL_NAMES.size()
+	save_settings()
+
+
 func next_track() -> void:
 	var i := Track.IDS.find(track_id)
 	set_track(Track.IDS[(i + 1) % Track.IDS.size()])
@@ -98,12 +107,14 @@ func _load_settings() -> void:
 	if cfg.load(SETTINGS_PATH) == OK:
 		server_url = cfg.get_value("net", "server_url", NetConfig.DEFAULT_SERVER_URL)
 		track_id = cfg.get_value("game", "track", "gp")
+		level = clampi(int(cfg.get_value("game", "level", RaceSim.DEFAULT_LEVEL)), 0, RaceSim.LEVEL_NAMES.size() - 1)
 
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("net", "server_url", server_url)
 	cfg.set_value("game", "track", track_id)
+	cfg.set_value("game", "level", level)
 	cfg.save(SETTINGS_PATH)
 
 

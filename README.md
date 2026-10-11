@@ -31,6 +31,16 @@ En el menú principal, el botón **< PISTA: ... >** cambia entre:
 La pista elegida se guarda en el celular. En online, la elige quien **crea** la
 partida y el servidor se la indica al que se une.
 
+## Nivel de dificultad
+
+En el menú, el botón **NIVEL** cambia la velocidad de los autos de la CPU:
+
+- **FACIL**: los CPU van bastante más despacio y frenan más en las curvas.
+- **NORMAL** (por defecto): carrera pareja.
+- **DIFICIL**: los CPU a fondo (como en la primera versión).
+
+El nivel se guarda en el celular. En online lo elige quien crea la partida.
+
 ## Cómo se juega
 
 - Los autos **aceleran solos**. Vos solo doblás.

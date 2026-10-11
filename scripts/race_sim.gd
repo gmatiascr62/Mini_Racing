@@ -48,6 +48,11 @@ const PERSONALITIES := [
 ]
 ## Driving model used when a human car is driven by the computer
 ## (test races, after finishing, or when an online player disconnects).
+## Difficulty levels: CPU top speed and cornering speed multipliers.
+const LEVEL_NAMES := ["FACIL", "NORMAL", "DIFICIL"]
+const LEVEL_SPEED := [0.78, 0.89, 1.0]
+const LEVEL_CORNER := [0.8, 0.91, 1.0]
+const DEFAULT_LEVEL := 1
 const AUTOPILOT := {"name": "AUTO", "vmax": 97.0, "corner": 1.0, "gain": 3.4, "look": 1.0, "apex": 5.0, "pass_dist": 28.0, "pass_gap": 10.0, "pass_side": 12.0}
 
 
@@ -101,6 +106,8 @@ class Car:
 	var steer := 0.0
 	var throttle := 1.0
 	var vmax := 100.0
+	## Cornering speed multiplier for computer drivers (difficulty level).
+	var corner_skill := 1.0
 	var on_road := true
 	var skidding := false
 	var track_idx := -1
@@ -130,6 +137,7 @@ class Car:
 var track: Track
 var cars: Array = []
 var laps := DEFAULT_LAPS
+var level := DEFAULT_LEVEL
 var state := STATE_COUNTDOWN
 var countdown := COUNTDOWN_TIME
 var time := 0.0
@@ -145,8 +153,9 @@ func _init(p_track: Track = null) -> void:
 
 ## specs: Array of {"name": String, "human": bool, "pers": int (CPU only)}
 ## in grid order (index 0 = pole position). The car id is its index in specs.
-func setup(specs: Array, p_laps: int = DEFAULT_LAPS) -> void:
+func setup(specs: Array, p_laps: int = DEFAULT_LAPS, p_level: int = DEFAULT_LEVEL) -> void:
 	laps = p_laps
+	level = clampi(p_level, 0, LEVEL_NAMES.size() - 1)
 	cars.clear()
 	finish_order.clear()
 	events.clear()
@@ -166,6 +175,11 @@ func setup(specs: Array, p_laps: int = DEFAULT_LAPS) -> void:
 		else:
 			c.pers = PERSONALITIES[int(spec.get("pers", 3)) % PERSONALITIES.size()]
 			c.vmax = c.pers["vmax"]
+		# The difficulty level only slows down computer drivers (CPUs and the
+		# offline "BOT" that fills the second player's slot).
+		if not c.human or c.autopilot:
+			c.vmax *= LEVEL_SPEED[level]
+			c.corner_skill = LEVEL_CORNER[level]
 		c.name = spec.get("name", c.pers["name"])
 		var slot := track.grid_slot(i)
 		c.pos = slot[0]
@@ -341,7 +355,7 @@ func ai_drive(c: Car, dt: float) -> void:
 	c.steer = clampf(diff * float(p["gain"]), -1.0, 1.0)
 	# Speed: lift off before corners that are too fast for us.
 	var horizon := fwd * 0.75 + 22.0
-	var vt := track.min_safe_speed(c.s, c.s + horizon) * float(p["corner"])
+	var vt := track.min_safe_speed(c.s, c.s + horizon) * float(p["corner"]) * c.corner_skill
 	if absf(diff) > 0.9:
 		vt = minf(vt, 45.0)
 	c.throttle = 1.0 if fwd < minf(vt, c.vmax) else 0.0
@@ -392,8 +406,10 @@ func _collide() -> void:
 			var rb := pb - b.pos
 			a.heading += clampf(ra.cross(-nrm * jimp) * SPIN, -0.3, 0.3)
 			b.heading += clampf(rb.cross(nrm * jimp) * SPIN, -0.3, 0.3)
-			a.vel *= 0.97
-			b.vel *= 0.97
+			# Real impacts scrub speed; cars just leaning on each other do not.
+			if -rv > 8.0:
+				a.vel *= 0.94
+				b.vel *= 0.94
 			if -rv > 10.0:
 				events.append({"type": "crash", "pos": (pa + pb) * 0.5, "power": -rv})
 
