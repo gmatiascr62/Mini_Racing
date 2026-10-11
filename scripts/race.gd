@@ -287,6 +287,9 @@ func _online_tick() -> void:
 	if Game.net.is_open() and sim.state == RaceSim.STATE_RACING and not me.finished and not show_results:
 		_seq += 1
 		var steer := _steer_input()
+		if Game.autodrive:
+			sim.ai_drive(me, RaceSim.TICK)
+			steer = signf(me.steer) if absf(me.steer) > 0.3 else 0.0
 		_history.append([_seq, steer])
 		if _history.size() > 180:
 			_history.pop_front()
@@ -373,7 +376,9 @@ func _on_snapshot(msg: Dictionary) -> void:
 	sim.state = int(msg.get("st", 0))
 	sim.countdown = float(msg.get("cd", 0)) / 100.0
 	sim.time = float(msg.get("tm", 0)) / 100.0
-	_standings = msg.get("r", _standings)
+	var order: Array = msg.get("r", [])
+	if order.size() == sim.cars.size():
+		_standings = order.map(func(v) -> int: return int(v))
 	for i in range(cars.size()):
 		var c: RaceSim.Car = sim.cars[i]
 		var row: Array = cars[i]
@@ -504,7 +509,7 @@ func _draw_hud(ci: CanvasItem) -> void:
 		for i in range(3):
 			var col := Pal.RED.lightened(0.2) if i < lit else Color("#301010")
 			ci.draw_rect(Rect2(214 + i * 20, 108, 12, 14), col)
-		PixelFont.draw_text_centered(ci, str(ceili(sim.countdown)), 240, 136, 4, Pal.YELLOW, Pal.BLACK)
+		PixelFont.draw_text_centered(ci, str(ceili(sim.countdown)), 240, 136, 4, Pal.WHITE, Pal.BLACK)
 	elif go_time > 0.0:
 		go_time -= get_physics_process_delta_time()
 		PixelFont.draw_text_centered(ci, "YA!", 240, 112, 6, Pal.LIGHT_GREEN, Pal.BLACK)
@@ -550,7 +555,10 @@ func _draw_controls(ci: CanvasItem) -> void:
 func _draw_results(ci: CanvasItem) -> void:
 	Ui.draw_panel(ci, Rect2(100, 30, 280, 220), Color(0, 0, 0, 0.9), Pal.LIGHT_BLUE)
 	PixelFont.draw_text_centered(ci, "CLASIFICACION FINAL", 240, 40, 2, Pal.YELLOW)
-	PixelFont.draw_text(ci, "POS PILOTO      TIEMPO  MEJOR V.", Vector2(118, 64), 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "POS", Vector2(118, 64), 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "PILOTO", Vector2(146, 64), 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "TIEMPO", Vector2(250, 64), 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "MEJOR V.", Vector2(316, 64), 1, Pal.LIGHT_GREY)
 	var y := 78.0
 	for r in results:
 		var id := int(r["id"])
@@ -558,7 +566,7 @@ func _draw_results(ci: CanvasItem) -> void:
 		var col := Pal.YELLOW if is_me else Pal.WHITE
 		ci.draw_rect(Rect2(118, y, 8, 7), RaceSim.car_color(id))
 		var name := str(r["name"])
-		if is_me:
+		if is_me and name != "VOS":
 			name += " (VOS)"
 		var t := Ui.format_time(float(r["time"])) if r["finished"] else ("%d VUELTAS" % int(r["laps"]))
 		PixelFont.draw_text(ci, str(int(r["pos"])), Vector2(130, y), 1, col)

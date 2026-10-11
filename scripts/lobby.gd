@@ -21,6 +21,9 @@ func _ready() -> void:
 		_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS})
 	else:
 		_set_state("keypad")
+		if Game.debug_code != "":
+			code = Game.debug_code
+			_on_button("ok")
 
 
 func _exit_tree() -> void:

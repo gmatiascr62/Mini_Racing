@@ -4,6 +4,9 @@ Juego de carreras retro de autitos tipo Fórmula 1 para Android, inspirado en lo
 juegos de Commodore 64. Vista desde arriba, toda la pista en pantalla, 6 autos,
 5 vueltas. Hecho con **Godot 4.3** (renderer GL Compatibility).
 
+![Menú](docs/menu.png) ![Carrera](docs/race.png)
+![Largada](docs/countdown.png) ![Clasificación online](docs/online4.png)
+
 ## Descargar el APK
 
 Cada push compila el APK automáticamente con GitHub Actions:

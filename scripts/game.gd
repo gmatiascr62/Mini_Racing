@@ -36,11 +36,16 @@ func _ready() -> void:
 			_shot_path = a.substr(7)
 		elif a.begins_with("--frames="):
 			_shot_frames = int(a.substr(9))
+		elif a.begins_with("--lobby="):
+			lobby_action = a.substr(8)
+		elif a.begins_with("--code="):
+			debug_code = a.substr(7)
 		elif a.begins_with("--url="):
 			server_url = a.substr(6)
 
 
 var autodrive := false
+var debug_code := ""
 var _shot_path := ""
 var _shot_frames := 120
 var _frame := 0
