@@ -29,6 +29,7 @@ class Room:
 	var tick := 0
 	var laps := RaceSim.DEFAULT_LAPS
 	var track_id := "gp"
+	var level := RaceSim.DEFAULT_LEVEL
 	var idle_time := 0.0
 	var ended_sent := false
 
@@ -137,6 +138,7 @@ func _handle(p: Peer, msg: Dictionary) -> void:
 			room.code = _new_code()
 			var tid := str(msg.get("track", "gp"))
 			room.track_id = tid if tracks.has(tid) else "gp"
+			room.level = clampi(int(msg.get("level", RaceSim.DEFAULT_LEVEL)), 0, RaceSim.LEVEL_NAMES.size() - 1)
 			room.laps = clampi(int(msg.get("laps", RaceSim.DEFAULT_LAPS)), 1, RaceSim.DEFAULT_LAPS)
 			room.players[0] = p.id
 			rooms[room.code] = room
@@ -199,7 +201,7 @@ func _start_race(room: Room) -> void:
 	for slot in range(2):
 		names.append(("J%d" % (slot + 1)) if room.players[slot] != 0 else "")
 	room.sim = RaceSim.new(tracks[room.track_id])
-	room.sim.setup(RaceSim.make_specs(names), room.laps)
+	room.sim.setup(RaceSim.make_specs(names), room.laps, room.level)
 	room.state = "racing"
 	room.tick = 0
 	room.idle_time = 0.0
@@ -216,7 +218,7 @@ func _start_race(room: Room) -> void:
 		p.steer = 0.0
 		p.ack = 0
 		p.again = false
-		_send(p, {"t": "start", "code": room.code, "slot": slot, "car": RaceSim.human_car_id(slot), "names": all_names, "laps": room.laps, "track": room.track_id})
+		_send(p, {"t": "start", "code": room.code, "slot": slot, "car": RaceSim.human_car_id(slot), "names": all_names, "laps": room.laps, "track": room.track_id, "level": room.level})
 	_log("room %s race started" % room.code)
 
 

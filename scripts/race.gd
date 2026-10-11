@@ -62,7 +62,7 @@ func _ready() -> void:
 	online = Game.mode == "online"
 	sim = RaceSim.new(track)
 	if online:
-		sim.setup(RaceSim.make_specs(["J1", "J2"]), RaceSim.DEFAULT_LAPS)
+		sim.setup(RaceSim.make_specs(["J1", "J2"]), RaceSim.DEFAULT_LAPS, Game.online_level)
 		my_id = Game.online_car_id
 		for i in range(mini(Game.online_names.size(), sim.cars.size())):
 			sim.cars[i].name = str(Game.online_names[i])
@@ -70,7 +70,7 @@ func _ready() -> void:
 		Game.net.message.connect(_on_net_message)
 		Game.net.closed.connect(_on_net_closed)
 	else:
-		sim.setup(RaceSim.make_specs(["VOS"]), RaceSim.DEFAULT_LAPS)
+		sim.setup(RaceSim.make_specs(["VOS"]), RaceSim.DEFAULT_LAPS, Game.level)
 		my_id = RaceSim.human_car_id(0)
 		if Game.autodrive:
 			_me().autopilot = true
