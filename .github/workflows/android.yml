@@ -136,8 +136,8 @@ jobs:
           "$AAPT2" dump xmltree --file AndroidManifest.xml build/MiniRacing-debug.apk > manifest.txt
           grep -E "screenOrientation|permission" manifest.txt || true
           grep -q "android.permission.INTERNET" manifest.txt
-          # 0 = landscape, 6 = sensorLandscape
-          grep -E "screenOrientation\([^)]*\)=(0|6)$" manifest.txt
+          # Landscape only: 0 landscape, 6 sensorLandscape, 8 reverseLandscape, 11 userLandscape
+          grep -E "screenOrientation\([^)]*\)=(0|6|8|11)$" manifest.txt
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
