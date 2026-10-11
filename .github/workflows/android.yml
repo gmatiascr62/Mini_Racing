@@ -65,8 +65,19 @@ jobs:
             SDKMANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | head -n 1)"
           fi
           echo "sdkmanager: $SDKMANAGER"
-          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses > /dev/null || true
-          "$SDKMANAGER" --sdk_root="$SDK" "platform-tools" "build-tools;34.0.0" "platforms;android-34"
+          # The runner image usually ships these already; only install what is missing.
+          NEED=()
+          [ -d "$SDK/platform-tools" ] || NEED+=("platform-tools")
+          [ -x "$SDK/build-tools/34.0.0/apksigner" ] || NEED+=("build-tools;34.0.0")
+          [ -d "$SDK/platforms/android-34" ] || NEED+=("platforms;android-34")
+          if [ ${#NEED[@]} -gt 0 ]; then
+            echo "Installing: ${NEED[*]}"
+            (yes || true) | timeout 300 "$SDKMANAGER" --sdk_root="$SDK" --licenses > /dev/null || true
+            (yes || true) | timeout 900 "$SDKMANAGER" --sdk_root="$SDK" "${NEED[@]}"
+          else
+            echo "All required Android SDK packages are already installed."
+          fi
+          ls "$SDK/build-tools"
           echo "ANDROID_SDK_PATH=$SDK" >> "$GITHUB_ENV"
 
       - name: Create debug keystore
