@@ -28,6 +28,7 @@ class Room:
 	var state := "waiting"   # waiting, racing, results
 	var tick := 0
 	var laps := RaceSim.DEFAULT_LAPS
+	var track_id := "gp"
 	var idle_time := 0.0
 	var ended_sent := false
 
@@ -36,7 +37,7 @@ var port := NetConfig.DEFAULT_PORT
 var tcp := TCPServer.new()
 var peers: Dictionary = {}
 var rooms: Dictionary = {}
-var track: Track
+var tracks: Dictionary = {}
 var _next_peer := 1
 var _rng := RandomNumberGenerator.new()
 var verbose := true
@@ -44,7 +45,8 @@ var verbose := true
 
 func _ready() -> void:
 	_rng.randomize()
-	track = Track.new()
+	for id in Track.IDS:
+		tracks[id] = Track.new(id)
 	var port_from_args := false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--port="):
@@ -133,6 +135,8 @@ func _handle(p: Peer, msg: Dictionary) -> void:
 				_leave_room(p)
 			var room := Room.new()
 			room.code = _new_code()
+			var tid := str(msg.get("track", "gp"))
+			room.track_id = tid if tracks.has(tid) else "gp"
 			room.laps = clampi(int(msg.get("laps", RaceSim.DEFAULT_LAPS)), 1, RaceSim.DEFAULT_LAPS)
 			room.players[0] = p.id
 			rooms[room.code] = room
@@ -194,7 +198,7 @@ func _start_race(room: Room) -> void:
 	var names: Array = []
 	for slot in range(2):
 		names.append(("J%d" % (slot + 1)) if room.players[slot] != 0 else "")
-	room.sim = RaceSim.new(track)
+	room.sim = RaceSim.new(tracks[room.track_id])
 	room.sim.setup(RaceSim.make_specs(names), room.laps)
 	room.state = "racing"
 	room.tick = 0
@@ -212,7 +216,7 @@ func _start_race(room: Room) -> void:
 		p.steer = 0.0
 		p.ack = 0
 		p.again = false
-		_send(p, {"t": "start", "code": room.code, "slot": slot, "car": RaceSim.human_car_id(slot), "names": all_names, "laps": room.laps})
+		_send(p, {"t": "start", "code": room.code, "slot": slot, "car": RaceSim.human_car_id(slot), "names": all_names, "laps": room.laps, "track": room.track_id})
 	_log("room %s race started" % room.code)
 
 

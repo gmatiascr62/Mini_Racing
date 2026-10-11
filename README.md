@@ -19,6 +19,18 @@ Cada push compila el APK automáticamente con GitHub Actions:
    orígenes desconocidos"). Es un APK *debug* firmado con una clave de
    depuración: sirve para probar, no para publicar en Play Store.
 
+## Pistas
+
+En el menú principal, el botón **< PISTA: ... >** cambia entre:
+
+- **GRAN PREMIO**: circuito con curvas rápidas, horquillas y chicana.
+- **OVALO**: óvalo rápido y más ancho, para ir a fondo y pelear rueda a rueda.
+
+![Óvalo](docs/oval.png)
+
+La pista elegida se guarda en el celular. En online, la elige quien **crea** la
+partida y el servidor se la indica al que se une.
+
 ## Cómo se juega
 
 - Los autos **aceleran solos**. Vos solo doblás.

@@ -35,10 +35,14 @@ func check(cond: bool, what: String) -> void:
 
 
 func _initialize() -> void:
-	track = Track.new()
-	test_track()
-	test_offline_race(false)
-	test_offline_race(true)
+	for id in Track.IDS:
+		track = Track.new(id)
+		print("######## track: %s ########" % id)
+		test_track()
+		test_offline_race(false)
+		test_offline_race(true)
+	# The online test races on the oval to cover track selection over the network.
+	track = Track.new("ovalo")
 	print("== online (server + 2 clients over WebSocket) ==")
 	server = RaceServer.new()
 	server.verbose = false
@@ -51,13 +55,13 @@ func _initialize() -> void:
 	c1.message.connect(func(m: Dictionary) -> void: _on_msg(1, m))
 	c2.message.connect(func(m: Dictionary) -> void: _on_msg(2, m))
 	c1.open("ws://127.0.0.1:%d" % PORT)
-	c1.send({"t": "create", "v": NetConfig.PROTOCOL, "laps": 1})
+	c1.send({"t": "create", "v": NetConfig.PROTOCOL, "laps": 1, "track": "ovalo"})
 	_set_phase("wait_room")
 
 
 func test_track() -> void:
 	print("== track ==")
-	check(track.length > 900.0 and track.length < 1500.0, "track length %.0f px" % track.length)
+	check(track.length > 700.0 and track.length < 1500.0, "track length %.0f px" % track.length)
 	var inside := true
 	for p in track.pts:
 		if p.x < 20 or p.x > 460 or p.y < 28 or p.y > 252:
@@ -204,6 +208,7 @@ func _physics_process(delta: float) -> bool:
 				var s2: Dictionary = log2.filter(func(m): return m["t"] == "start")[0]
 				check(int(s1["car"]) != int(s2["car"]), "players drive different cars (%d, %d)" % [s1["car"], s2["car"]])
 				check((s1["names"] as Array).size() == 6, "6 cars in the race")
+				check(str(s1.get("track", "")) == "ovalo" and str(s2.get("track", "")) == "ovalo", "both players race on the track chosen by the creator")
 				_set_phase("race1")
 		"race1", "race2":
 			if not end1.is_empty() and not end2.is_empty():

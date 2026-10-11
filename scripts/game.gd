@@ -4,6 +4,8 @@ extends Node
 const SETTINGS_PATH := "user://settings.cfg"
 
 var track: Track
+var track_id := "gp"
+var _tracks: Dictionary = {}
 var mode := "offline"           # "offline" or "online"
 var lobby_action := "create"    # "create" or "join"
 var server_url := NetConfig.DEFAULT_SERVER_URL
@@ -17,8 +19,8 @@ var online_laps := RaceSim.DEFAULT_LAPS
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	track = Track.new()
 	_load_settings()
+	set_track(track_id)
 	net = NetClient.new()
 	net.name = "NetClient"
 	add_child(net)
@@ -40,6 +42,8 @@ func _ready() -> void:
 			lobby_action = a.substr(8)
 		elif a.begins_with("--code="):
 			debug_code = a.substr(7)
+		elif a.begins_with("--track="):
+			set_track(a.substr(8))
 		elif a.begins_with("--url="):
 			server_url = a.substr(6)
 
@@ -68,17 +72,38 @@ func apply_start(msg: Dictionary) -> void:
 	online_names = msg.get("names", [])
 	online_laps = int(msg.get("laps", RaceSim.DEFAULT_LAPS))
 	online_code = str(msg.get("code", online_code))
+	# Servers older than the track selector do not send "track": they run the GP.
+	set_track(str(msg.get("track", "gp")), false)
+
+
+## Selects the current track (tracks are built once and cached).
+func set_track(id: String, remember: bool = true) -> void:
+	if not id in Track.IDS:
+		id = "gp"
+	if not _tracks.has(id):
+		_tracks[id] = Track.new(id)
+	track = _tracks[id]
+	if remember:
+		track_id = id
+
+
+func next_track() -> void:
+	var i := Track.IDS.find(track_id)
+	set_track(Track.IDS[(i + 1) % Track.IDS.size()])
+	save_settings()
 
 
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_PATH) == OK:
 		server_url = cfg.get_value("net", "server_url", NetConfig.DEFAULT_SERVER_URL)
+		track_id = cfg.get_value("game", "track", "gp")
 
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("net", "server_url", server_url)
+	cfg.set_value("game", "track", track_id)
 	cfg.save(SETTINGS_PATH)
 
 

@@ -18,7 +18,7 @@ func _ready() -> void:
 	Game.net.message.connect(_on_message)
 	Game.net.closed.connect(_on_closed)
 	if Game.lobby_action == "create":
-		_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS})
+		_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS, "track": Game.track_id})
 	else:
 		_set_state("keypad")
 		if Game.debug_code != "":
@@ -116,7 +116,7 @@ func _on_button(id: String) -> void:
 			Game.goto("menu")
 		"retry":
 			if Game.lobby_action == "create":
-				_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS})
+				_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS, "track": Game.track_id})
 			else:
 				_set_state("keypad")
 		"del":

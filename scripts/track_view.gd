@@ -17,7 +17,7 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var n := track.n
-	var hw := Track.HALF_WIDTH
+	var hw := track.half_width
 	var kw := Track.KERB_WIDTH
 	# Grass with mown stripes and tufts.
 	draw_rect(Rect2(0, 0, 480, 270), Pal.GRASS)
@@ -37,7 +37,7 @@ func _draw() -> void:
 		var j := (i + 1) % n
 		var k := absf(track.curv[i])
 		var col := Pal.WHITE
-		if k > 0.012:
+		if k > track.kerb_curv:
 			col = Pal.KERB_RED if (i / 2) % 2 == 0 else Pal.WHITE
 		else:
 			col = Pal.LIGHT_GREY
@@ -79,24 +79,26 @@ func _quad(a: Vector2, b: Vector2, na: Vector2, nb: Vector2, from: float, to: fl
 
 
 func _draw_scenery() -> void:
-	# Grandstand inside the first straight, with a pixel crowd.
-	var gs := Rect2(212, 64, 96, 14)
-	draw_rect(gs.grow(1), Pal.BLACK)
-	draw_rect(gs, Pal.LIGHT_BLUE)
-	var crowd := [Pal.RED, Pal.YELLOW, Pal.WHITE, Pal.CYAN, Pal.PURPLE, Pal.ORANGE]
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	for y in range(66, 77, 3):
-		for x in range(214, 306, 2):
-			draw_rect(Rect2(x, y, 1, 1), crowd[rng.randi_range(0, crowd.size() - 1)])
-	draw_rect(Rect2(210, 60, 100, 4), Pal.BLUE)
-	# Pit building near the start.
-	draw_rect(Rect2(110, 64, 60, 10), Pal.BLACK)
-	draw_rect(Rect2(111, 65, 58, 8), Pal.LIGHT_GREY)
-	for x in range(114, 166, 8):
-		draw_rect(Rect2(x, 68, 4, 5), Pal.DARK_GREY)
-	# Trees.
-	for p in [Vector2(80, 110), Vector2(96, 128), Vector2(260, 120), Vector2(280, 140), Vector2(240, 205), Vector2(395, 105), Vector2(140, 236), Vector2(420, 190), Vector2(24, 230), Vector2(460, 30)]:
+	# Grandstand with a pixel crowd.
+	var gs: Rect2 = track.scenery.get("stand", Rect2())
+	if gs.size.x > 0.0:
+		draw_rect(gs.grow(1), Pal.BLACK)
+		draw_rect(gs, Pal.LIGHT_BLUE)
+		var crowd := [Pal.RED, Pal.YELLOW, Pal.WHITE, Pal.CYAN, Pal.PURPLE, Pal.ORANGE]
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 7
+		for y in range(int(gs.position.y) + 2, int(gs.end.y) - 1, 3):
+			for x in range(int(gs.position.x) + 2, int(gs.end.x) - 2, 2):
+				draw_rect(Rect2(x, y, 1, 1), crowd[rng.randi_range(0, crowd.size() - 1)])
+		draw_rect(Rect2(gs.position.x - 2, gs.position.y - 4, gs.size.x + 4, 4), Pal.BLUE)
+	# Pit building.
+	var pit: Rect2 = track.scenery.get("pit", Rect2())
+	if pit.size.x > 0.0:
+		draw_rect(pit, Pal.BLACK)
+		draw_rect(pit.grow(-1), Pal.LIGHT_GREY)
+		for x in range(int(pit.position.x) + 4, int(pit.end.x) - 4, 8):
+			draw_rect(Rect2(x, pit.position.y + 4, 4, pit.size.y - 5), Pal.DARK_GREY)
+	for p in track.scenery.get("trees", []):
 		_tree(p)
 
 

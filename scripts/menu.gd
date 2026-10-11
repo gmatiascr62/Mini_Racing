@@ -13,11 +13,12 @@ func _ready() -> void:
 	sim = RaceSim.new(Game.track)
 	sim.setup(RaceSim.make_specs([]), 99)
 	sim.countdown = 0.01
-	var y := 112
-	ui.add("cpu", Rect2(150, y, 180, 20), "CARRERA VS CPU", Pal.LIGHT_GREEN)
-	ui.add("create", Rect2(150, y + 26, 180, 20), "CREAR PARTIDA ONLINE", Pal.CYAN)
-	ui.add("join", Rect2(150, y + 52, 180, 20), "UNIRSE A PARTIDA", Pal.CYAN)
-	ui.add("server", Rect2(150, y + 78, 180, 20), "SERVIDOR ONLINE", Pal.LIGHT_GREY)
+	var y := 104
+	ui.add("track", Rect2(150, y, 180, 18), "< PISTA: %s >" % Game.track.title, Pal.YELLOW)
+	ui.add("cpu", Rect2(150, y + 23, 180, 18), "CARRERA VS CPU", Pal.LIGHT_GREEN)
+	ui.add("create", Rect2(150, y + 46, 180, 18), "CREAR PARTIDA ONLINE", Pal.CYAN)
+	ui.add("join", Rect2(150, y + 69, 180, 18), "UNIRSE A PARTIDA", Pal.CYAN)
+	ui.add("server", Rect2(150, y + 92, 180, 18), "SERVIDOR ONLINE", Pal.LIGHT_GREY)
 	_layer = Node2D.new()
 	_layer.draw.connect(_draw_layer)
 	add_child(_layer)
@@ -44,6 +45,9 @@ func _notification(what: int) -> void:
 
 func _on_button(id: String) -> void:
 	match id:
+		"track":
+			Game.next_track()
+			get_tree().reload_current_scene()
 		"cpu":
 			Game.mode = "offline"
 			Game.goto("race")

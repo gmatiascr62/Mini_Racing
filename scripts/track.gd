@@ -1,6 +1,6 @@
 class_name Track
 extends RefCounted
-## The single Mini Racing circuit. The whole track fits in the 480x270 screen.
+## A Mini Racing circuit ("gp" or "ovalo"). The whole track fits in the 480x270 screen.
 ## The centerline is a closed Catmull-Rom spline resampled at a uniform step,
 ## so "s" (distance along the track) maps directly to a sample index.
 
@@ -11,9 +11,12 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 175.0
 const MAX_SAFE_SPEED := 120.0
 
-## Control points, clockwise on screen. The first point sits on the main
-## straight; the start/finish line is at s = 0.
-const CONTROL := [
+const IDS := ["gp", "ovalo"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO"}
+
+## Grand Prix control points, clockwise on screen. The first point sits on the
+## main straight; the start/finish line is at s = 0.
+const GP_CONTROL := [
 	Vector2(196, 40), Vector2(290, 40), Vector2(372, 42), Vector2(430, 62),
 	Vector2(448, 104), Vector2(420, 140), Vector2(362, 146), Vector2(318, 162),
 	Vector2(326, 204), Vector2(366, 222), Vector2(348, 248), Vector2(268, 250),
@@ -21,6 +24,14 @@ const CONTROL := [
 	Vector2(36, 128), Vector2(46, 72), Vector2(96, 44),
 ]
 
+var id := "gp"
+var title := "GRAN PREMIO"
+var half_width := HALF_WIDTH
+## Corners sharper than this get red/white kerbs.
+var kerb_curv := 0.012
+## Decoration: {"stand": Rect2, "pit": Rect2, "trees": Array[Vector2]}
+var scenery: Dictionary = {}
+var control: Array = []
 var pts := PackedVector2Array()
 var tangents := PackedVector2Array()
 var normals := PackedVector2Array()
@@ -31,19 +42,61 @@ var step := TARGET_STEP
 var length := 0.0
 
 
-func _init() -> void:
+func _init(p_id: String = "gp") -> void:
+	id = p_id if p_id in IDS else "gp"
+	title = TITLES[id]
+	if id == "ovalo":
+		half_width = 20.0
+		kerb_curv = 0.009
+		control = _oval_control(Vector2(150, 135), Vector2(330, 135), 85.0)
+		scenery = {
+			"stand": Rect2(196, 92, 88, 14), "pit": Rect2(196, 160, 88, 10),
+			"trees": [Vector2(160, 118), Vector2(320, 118), Vector2(160, 158), Vector2(320, 158), Vector2(24, 30), Vector2(456, 30), Vector2(24, 230), Vector2(456, 240), Vector2(240, 258)],
+		}
+	else:
+		control = GP_CONTROL
+		scenery = {
+			"stand": Rect2(212, 64, 96, 14), "pit": Rect2(110, 64, 60, 10),
+			"trees": [Vector2(80, 110), Vector2(96, 128), Vector2(260, 120), Vector2(280, 140), Vector2(240, 205), Vector2(395, 105), Vector2(140, 236), Vector2(420, 190), Vector2(24, 230), Vector2(460, 30)],
+		}
 	_build()
+
+
+## Stadium-shaped oval: two straights joined by half circles, clockwise,
+## starting in the middle of the top straight.
+static func _oval_control(left_c: Vector2, right_c: Vector2, r: float) -> Array:
+	var out: Array = []
+	var mid_x := (left_c.x + right_c.x) / 2.0
+	var x := mid_x
+	while x < right_c.x:
+		out.append(Vector2(x, right_c.y - r))
+		x += 30.0
+	for k in range(9):
+		var a := -PI / 2.0 + PI * k / 9.0
+		out.append(right_c + Vector2(cos(a), sin(a)) * r)
+	x = right_c.x
+	while x > left_c.x:
+		out.append(Vector2(x, left_c.y + r))
+		x -= 30.0
+	for k in range(9):
+		var a := PI / 2.0 + PI * k / 9.0
+		out.append(left_c + Vector2(cos(a), sin(a)) * r)
+	x = left_c.x
+	while x < mid_x - 1.0:
+		out.append(Vector2(x, left_c.y - r))
+		x += 30.0
+	return out
 
 
 func _build() -> void:
 	# 1. Dense Catmull-Rom polyline.
 	var dense := PackedVector2Array()
-	var cn := CONTROL.size()
+	var cn := control.size()
 	for i in range(cn):
-		var p0: Vector2 = CONTROL[(i - 1 + cn) % cn]
-		var p1: Vector2 = CONTROL[i]
-		var p2: Vector2 = CONTROL[(i + 1) % cn]
-		var p3: Vector2 = CONTROL[(i + 2) % cn]
+		var p0: Vector2 = control[(i - 1 + cn) % cn]
+		var p1: Vector2 = control[i]
+		var p2: Vector2 = control[(i + 1) % cn]
+		var p3: Vector2 = control[(i + 2) % cn]
 		for k in range(24):
 			var t := k / 24.0
 			var t2 := t * t
@@ -167,7 +220,7 @@ func locate(pos: Vector2, hint: int = -1) -> Vector3:
 
 
 func is_on_road(lateral: float) -> bool:
-	return absf(lateral) <= HALF_WIDTH + KERB_WIDTH
+	return absf(lateral) <= half_width + KERB_WIDTH
 
 
 ## Grid slot k (0 = pole). Returns [position, heading, s_behind_line].
