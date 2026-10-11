@@ -1,0 +1,41 @@
+name: Build Android APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install build-tools and Android SDK
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+      - name: Get Godot export templates
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
+          curl -L --fail --retry 3 -o /tmp/templates.tpz "https://github.com/godotengine/godot-builds/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/godot_templates
+          cp /tmp/godot_templates/templates/* "$HOME/.local/share/godot/export_templates/4.3.stable/"
+      - name: Configure Android debug signing
+        run: |
+          keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+      - name: Import Project
+        run: godot --headless --editor --path . --quit
+      - name: Export APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/debug.keystore
+        run: |
+          mkdir -p build
+          cp "$HOME/.android/debug.keystore" debug.keystore
+          godot --headless --path . --export-debug "Android" build/MiniRacing-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiniRacing-APK
+          path: build/*.apk
