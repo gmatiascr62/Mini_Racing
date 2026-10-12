@@ -17,11 +17,12 @@ const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTIN
 ## Old Hockenheim (rotated to landscape) without the chicanes: stadium on the
 ## left, long straights through the forest, Ost curve on the right.
 const HOCKENHEIM_CONTROL := [
-	Vector2(200, 240), Vector2(290, 240), Vector2(350, 236), Vector2(395, 220),
-	Vector2(428, 198), Vector2(444, 160), Vector2(440, 118), Vector2(420, 92),
-	Vector2(385, 74), Vector2(335, 58), Vector2(290, 45), Vector2(220, 36),
-	Vector2(140, 37), Vector2(82, 43), Vector2(54, 62), Vector2(42, 100),
-	Vector2(40, 150), Vector2(44, 198), Vector2(64, 228), Vector2(120, 240),
+	Vector2(41, 118), Vector2(40, 150), Vector2(44, 198), Vector2(64, 228),
+	Vector2(120, 240), Vector2(200, 240), Vector2(290, 240), Vector2(350, 236),
+	Vector2(395, 220), Vector2(428, 198), Vector2(444, 160), Vector2(440, 118),
+	Vector2(420, 92), Vector2(385, 74), Vector2(335, 58), Vector2(290, 45),
+	Vector2(220, 36), Vector2(140, 37), Vector2(82, 43), Vector2(54, 62),
+	Vector2(43, 92),
 ]
 
 ## Mini Monza without the chicanes (traced from the circuit map), clockwise:
@@ -166,7 +167,7 @@ func _init(p_id: String = "gp") -> void:
 		half_width = 15.0
 		kerb_curv = 0.016
 		control = HOCKENHEIM_CONTROL
-		scenery = {"stand": Rect2(130, 204, 80, 10), "pit": Rect2(240, 206, 70, 8), "trees": []}
+		scenery = {"stand": Rect2(68, 98, 10, 44), "pit": Rect2(240, 206, 70, 8), "trees": []}
 	elif id == "monza":
 		half_width = 15.0
 		kerb_curv = 0.016
