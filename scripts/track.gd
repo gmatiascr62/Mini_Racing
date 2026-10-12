@@ -25,9 +25,9 @@ const LAGO_CONTROL := [
 ## Easy circuit: wide road and long, gentle curves (clockwise).
 const PRADERA_CONTROL := [
 	Vector2(220, 40), Vector2(320, 40), Vector2(405, 52), Vector2(446, 98),
-	Vector2(436, 148), Vector2(392, 176), Vector2(330, 186), Vector2(280, 206),
-	Vector2(222, 230), Vector2(152, 228), Vector2(102, 196), Vector2(62, 150),
-	Vector2(52, 100), Vector2(80, 58), Vector2(140, 40),
+	Vector2(432, 146), Vector2(380, 168), Vector2(318, 168), Vector2(278, 196),
+	Vector2(232, 230), Vector2(160, 230), Vector2(112, 200), Vector2(124, 160),
+	Vector2(84, 128), Vector2(56, 92), Vector2(84, 54), Vector2(140, 40),
 ]
 
 ## Street circuit: right-angle corners around city blocks (clockwise,
@@ -131,12 +131,12 @@ func _init(p_id: String = "gp") -> void:
 			"trees": [Vector2(130, 100), Vector2(126, 140), Vector2(350, 100), Vector2(354, 140), Vector2(24, 30), Vector2(456, 30), Vector2(24, 120), Vector2(456, 130), Vector2(130, 250), Vector2(350, 250)],
 		}
 	elif id == "pradera":
-		half_width = 21.0
+		half_width = 17.0
 		kerb_curv = 0.016
 		control = PRADERA_CONTROL
 		scenery = {
-			"stand": Rect2(200, 92, 90, 14), "pit": Rect2(200, 140, 70, 10),
-			"trees": [Vector2(130, 110), Vector2(150, 150), Vector2(330, 110), Vector2(360, 130), Vector2(300, 150), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
+			"stand": Rect2(200, 82, 90, 14), "pit": Rect2(200, 124, 70, 10),
+			"trees": [Vector2(150, 100), Vector2(170, 150), Vector2(330, 100), Vector2(360, 120), Vector2(300, 140), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
 		}
 	elif id == "callejero":
 		style = "city"
