@@ -18,10 +18,8 @@ const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTIN
 ## starting in the middle of the top street).
 const CALLEJERO_CORNERS := [
 	Vector2(290, 36), Vector2(290, 76), Vector2(448, 76), Vector2(448, 160),
-	Vector2(376, 160), Vector2(376, 236), Vector2(300, 236), Vector2(300, 190),
-	Vector2(250, 190), Vector2(250, 236), Vector2(110, 236), Vector2(110, 184),
-	Vector2(40, 184), Vector2(40, 120), Vector2(180, 120), Vector2(180, 80),
-	Vector2(100, 80), Vector2(100, 36),
+	Vector2(376, 160), Vector2(376, 236), Vector2(230, 236), Vector2(230, 170),
+	Vector2(40, 170), Vector2(40, 36),
 ]
 
 ## Twisty walled circuit. Starts on the bottom straight heading left.
