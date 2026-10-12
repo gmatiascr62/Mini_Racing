@@ -18,12 +18,13 @@ const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTIN
 ## main straight (heading left), Curva Grande, Lesmo, Serraglio, Ascari,
 ## back straight and Parabolica.
 const MONZA_CONTROL := [
-	Vector2(309, 197), Vector2(220, 198), Vector2(152, 197), Vector2(116, 190),
+	Vector2(309, 200), Vector2(220, 200), Vector2(152, 199), Vector2(116, 191),
 	Vector2(96, 171), Vector2(85, 136), Vector2(74, 98), Vector2(60, 65),
 	Vector2(50, 44), Vector2(63, 33), Vector2(105, 32), Vector2(124, 44),
-	Vector2(152, 75), Vector2(192, 108), Vector2(222, 136), Vector2(248, 152),
-	Vector2(281, 157), Vector2(365, 157), Vector2(427, 158), Vector2(445, 169),
-	Vector2(441, 187), Vector2(416, 196), Vector2(365, 197),
+	Vector2(150, 68), Vector2(184, 94), Vector2(214, 112), Vector2(242, 121),
+	Vector2(281, 124), Vector2(360, 124), Vector2(412, 126), Vector2(442, 138),
+	Vector2(458, 162), Vector2(452, 186), Vector2(428, 199), Vector2(395, 201),
+	Vector2(352, 200),
 ]
 
 ## Easiest circuit: very wide road and long, gentle curves (clockwise).
@@ -155,7 +156,7 @@ func _init(p_id: String = "gp") -> void:
 		half_width = 15.0
 		kerb_curv = 0.016
 		control = MONZA_CONTROL
-		scenery = {"stand": Rect2(170, 214, 130, 12), "pit": Rect2(280, 166, 70, 8), "trees": []}
+		scenery = {"stand": Rect2(170, 214, 130, 12), "pit": Rect2(290, 156, 80, 10), "trees": []}
 	elif id == "bosque":
 		half_width = 17.0
 		kerb_curv = 0.016
