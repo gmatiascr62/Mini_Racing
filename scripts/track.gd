@@ -11,8 +11,33 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 215.0
 const MAX_SAFE_SPEED := 120.0
 
-const IDS := ["gp", "ovalo", "serpentina", "callejero"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO"}
+const IDS := ["gp", "ovalo", "serpentina", "callejero", "campo", "pradera", "bosque"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "campo": "CAMPO", "pradera": "PRADERA", "bosque": "BOSQUE"}
+
+## Easiest circuit: very wide road and long, gentle curves (clockwise).
+const CAMPO_CONTROL := [
+	Vector2(220, 40), Vector2(320, 40), Vector2(405, 52), Vector2(446, 98),
+	Vector2(436, 148), Vector2(392, 176), Vector2(330, 186), Vector2(280, 206),
+	Vector2(222, 230), Vector2(152, 228), Vector2(102, 196), Vector2(62, 150),
+	Vector2(52, 100), Vector2(80, 58), Vector2(140, 40),
+]
+
+## Easy-but-not-too-easy circuit through a forest: rounded triangle with an
+## S on the left side.
+const BOSQUE_CONTROL := [
+	Vector2(200, 38), Vector2(320, 38), Vector2(410, 48), Vector2(444, 84),
+	Vector2(430, 128), Vector2(380, 170), Vector2(320, 210), Vector2(262, 232),
+	Vector2(212, 222), Vector2(178, 186), Vector2(150, 160), Vector2(108, 148),
+	Vector2(66, 120), Vector2(56, 78), Vector2(90, 46), Vector2(140, 38),
+]
+
+## Easy circuit: wide road and long, gentle curves (clockwise).
+const PRADERA_CONTROL := [
+	Vector2(220, 40), Vector2(320, 40), Vector2(405, 52), Vector2(446, 98),
+	Vector2(432, 146), Vector2(380, 168), Vector2(318, 168), Vector2(278, 196),
+	Vector2(232, 230), Vector2(160, 230), Vector2(112, 200), Vector2(124, 160),
+	Vector2(84, 128), Vector2(56, 92), Vector2(84, 54), Vector2(140, 40),
+]
 
 ## Street circuit: right-angle corners around city blocks (clockwise,
 ## starting in the middle of the top street).
@@ -106,6 +131,30 @@ func _init(p_id: String = "gp") -> void:
 			"stand": Rect2(196, 92, 88, 14), "pit": Rect2(196, 160, 88, 10),
 			"trees": [Vector2(160, 118), Vector2(320, 118), Vector2(160, 158), Vector2(320, 158), Vector2(24, 30), Vector2(456, 30), Vector2(24, 230), Vector2(456, 240), Vector2(240, 258)],
 		}
+	elif id == "campo":
+		half_width = 21.0
+		kerb_curv = 0.016
+		control = CAMPO_CONTROL
+		scenery = {
+			"stand": Rect2(200, 92, 90, 14), "pit": Rect2(200, 140, 70, 10),
+			"trees": [Vector2(130, 110), Vector2(150, 150), Vector2(330, 110), Vector2(360, 130), Vector2(300, 150), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
+		}
+	elif id == "bosque":
+		half_width = 17.0
+		kerb_curv = 0.016
+		control = BOSQUE_CONTROL
+		var forest: Array = []
+		for p in [Vector2(250, 90), Vector2(280, 110), Vector2(310, 92), Vector2(340, 112), Vector2(230, 120), Vector2(300, 140), Vector2(260, 160), Vector2(330, 150), Vector2(370, 100), Vector2(22, 180), Vector2(40, 220), Vector2(70, 196), Vector2(110, 236), Vector2(140, 210), Vector2(456, 170), Vector2(440, 220), Vector2(460, 250), Vector2(400, 236), Vector2(30, 24), Vector2(456, 26), Vector2(110, 100), Vector2(150, 110)]:
+			forest.append(p)
+		scenery = {"stand": Rect2(180, 62, 90, 12), "pit": Rect2(0, 0, 0, 0), "trees": forest}
+	elif id == "pradera":
+		half_width = 17.0
+		kerb_curv = 0.016
+		control = PRADERA_CONTROL
+		scenery = {
+			"stand": Rect2(200, 82, 90, 14), "pit": Rect2(200, 124, 70, 10),
+			"trees": [Vector2(150, 100), Vector2(170, 150), Vector2(330, 100), Vector2(360, 120), Vector2(300, 140), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
+		}
 	elif id == "callejero":
 		style = "city"
 		edge_wall = 15.0 + 2.0
@@ -132,6 +181,30 @@ func _init(p_id: String = "gp") -> void:
 		}
 	_build()
 	_build_walls()
+	if id == "bosque":
+		_plant_forest()
+
+
+## Fills the grass with trees (deterministic), keeping clear of the road,
+## the grandstand and the touch buttons.
+func _plant_forest() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var trees: Array = []
+	var stand: Rect2 = scenery.get("stand", Rect2())
+	for y in range(20, 266, 13):
+		for x in range(8, 474, 13):
+			var p := Vector2(x + rng.randi_range(-4, 4), y + rng.randi_range(-4, 4))
+			if rng.randf() < 0.35:
+				continue
+			if absf(locate(p).y) < half_width + KERB_WIDTH + 8.0:
+				continue
+			if stand.grow(8).has_point(p):
+				continue
+			if (p.x < 86 or p.x > 394) and p.y > 200:
+				continue
+			trees.append(p)
+	scenery["trees"] = trees
 
 
 ## Builds the infield walls from rough hand-drawn lines: every point is moved

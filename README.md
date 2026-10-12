@@ -33,7 +33,12 @@ En el menú principal, el botón **< PISTA: ... >** cambia entre:
   junto al puerto y **barreras** a ambos lados de la calle (si te pasás en una
   esquina, rebotás contra la barrera).
 
+- **CAMPO** (fácil): la más fácil, calle muy ancha y curvas largas y suaves.
+- **PRADERA** (fácil): calle ancha con una S suave a la izquierda.
+- **BOSQUE** (fácil, pero no tanto): triángulo redondeado entre árboles, con una S.
+
 ![Óvalo](docs/oval.png) ![Serpentina](docs/serpentina.png) ![Callejero](docs/callejero.png)
+![Campo](docs/campo.png) ![Pradera](docs/pradera.png) ![Bosque](docs/bosque.png)
 
 La pista elegida se guarda en el celular. En online, la elige quien **crea** la
 partida y el servidor se la indica al que se une.
