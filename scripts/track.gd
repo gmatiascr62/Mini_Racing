@@ -156,7 +156,7 @@ func _init(p_id: String = "gp") -> void:
 		half_width = 15.0
 		kerb_curv = 0.016
 		control = MONZA_CONTROL
-		scenery = {"stand": Rect2(170, 214, 130, 12), "pit": Rect2(290, 156, 80, 10), "trees": []}
+		scenery = {"stand": Rect2(170, 230, 130, 12), "pit": Rect2(290, 156, 80, 10), "trees": []}
 	elif id == "bosque":
 		half_width = 17.0
 		kerb_curv = 0.016
