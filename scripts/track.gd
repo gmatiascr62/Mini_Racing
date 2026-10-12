@@ -11,8 +11,32 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 215.0
 const MAX_SAFE_SPEED := 120.0
 
-const IDS := ["gp", "ovalo", "serpentina", "callejero", "campo", "pradera", "bosque"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "campo": "CAMPO", "pradera": "PRADERA", "bosque": "BOSQUE"}
+const IDS := ["gp", "ovalo", "serpentina", "callejero", "campo", "pradera", "bosque", "monza", "hockenheim"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "campo": "CAMPO", "pradera": "PRADERA", "bosque": "BOSQUE", "monza": "MONZA", "hockenheim": "HOCKENHEIM"}
+
+## Old Hockenheim (rotated to landscape) without the chicanes: stadium on the
+## left, long straights through the forest, Ost curve on the right.
+const HOCKENHEIM_CONTROL := [
+	Vector2(41, 118), Vector2(40, 150), Vector2(44, 198), Vector2(64, 228),
+	Vector2(120, 240), Vector2(200, 240), Vector2(290, 240), Vector2(350, 236),
+	Vector2(395, 220), Vector2(428, 198), Vector2(444, 160), Vector2(440, 118),
+	Vector2(420, 92), Vector2(385, 74), Vector2(335, 58), Vector2(290, 45),
+	Vector2(220, 36), Vector2(140, 37), Vector2(82, 43), Vector2(54, 62),
+	Vector2(43, 92),
+]
+
+## Mini Monza without the chicanes (traced from the circuit map), clockwise:
+## main straight (heading left), Curva Grande, Lesmo, Serraglio, Ascari,
+## back straight and Parabolica.
+const MONZA_CONTROL := [
+	Vector2(309, 200), Vector2(220, 200), Vector2(152, 199), Vector2(116, 191),
+	Vector2(96, 171), Vector2(85, 136), Vector2(74, 98), Vector2(60, 65),
+	Vector2(50, 44), Vector2(63, 33), Vector2(105, 32), Vector2(124, 44),
+	Vector2(150, 68), Vector2(184, 94), Vector2(214, 112), Vector2(242, 121),
+	Vector2(281, 124), Vector2(360, 124), Vector2(412, 126), Vector2(442, 138),
+	Vector2(458, 162), Vector2(452, 186), Vector2(428, 199), Vector2(395, 201),
+	Vector2(352, 200),
+]
 
 ## Easiest circuit: very wide road and long, gentle curves (clockwise).
 const CAMPO_CONTROL := [
@@ -139,6 +163,16 @@ func _init(p_id: String = "gp") -> void:
 			"stand": Rect2(200, 92, 90, 14), "pit": Rect2(200, 140, 70, 10),
 			"trees": [Vector2(130, 110), Vector2(150, 150), Vector2(330, 110), Vector2(360, 130), Vector2(300, 150), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
 		}
+	elif id == "hockenheim":
+		half_width = 15.0
+		kerb_curv = 0.016
+		control = HOCKENHEIM_CONTROL
+		scenery = {"stand": Rect2(68, 98, 10, 44), "pit": Rect2(240, 206, 70, 8), "trees": []}
+	elif id == "monza":
+		half_width = 15.0
+		kerb_curv = 0.016
+		control = MONZA_CONTROL
+		scenery = {"stand": Rect2(170, 230, 130, 12), "pit": Rect2(290, 156, 80, 10), "trees": []}
 	elif id == "bosque":
 		half_width = 17.0
 		kerb_curv = 0.016
@@ -181,7 +215,7 @@ func _init(p_id: String = "gp") -> void:
 		}
 	_build()
 	_build_walls()
-	if id == "bosque":
+	if id == "bosque" or id == "monza" or id == "hockenheim":
 		_plant_forest()
 
 
