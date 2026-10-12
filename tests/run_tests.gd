@@ -136,7 +136,7 @@ func test_offline_race(human_bots: bool) -> void:
 		var inputs := {}
 		for c in sim.cars:
 			if c.human and not c.autopilot:
-				inputs[c.id] = bot_steer(c.pos, c.heading, c.speed(), c.s)
+				inputs[c.id] = bot_steer(c.pos, c.heading, c.speed(), c.s, -5.0 if c.id % 2 == 0 else 5.0)
 		sim.step(inputs)
 		ticks += 1
 		for c in sim.cars:
@@ -184,9 +184,11 @@ func test_levels() -> void:
 	check(winners[0] > winners[1] and winners[1] > winners[2], "CPUs are slower on easier levels")
 
 
-func bot_steer(pos: Vector2, heading: float, speed: float, s: float) -> float:
+## Bang-bang steering bot (only full left / straight / full right, like the
+## touch buttons). Each bot keeps its own lane, like two players side by side.
+func bot_steer(pos: Vector2, heading: float, speed: float, s: float, lane: float = 0.0) -> float:
 	var look := 16.0 + maxf(speed, 0.0) * 0.3
-	var t := track.point_at(s + look)
+	var t := track.point_at(s + look) + track.normal_at(s + look) * lane
 	var diff := wrapf((t - pos).angle() - heading, -PI, PI)
 	if diff > 0.06:
 		return 1.0
