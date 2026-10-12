@@ -11,8 +11,16 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 215.0
 const MAX_SAFE_SPEED := 120.0
 
-const IDS := ["gp", "ovalo", "serpentina", "callejero"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO"}
+const IDS := ["gp", "ovalo", "serpentina", "callejero", "pradera"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "pradera": "PRADERA"}
+
+## Easy circuit: wide road and long, gentle curves (clockwise).
+const PRADERA_CONTROL := [
+	Vector2(220, 40), Vector2(320, 40), Vector2(405, 52), Vector2(446, 98),
+	Vector2(436, 148), Vector2(392, 176), Vector2(330, 186), Vector2(280, 206),
+	Vector2(222, 230), Vector2(152, 228), Vector2(102, 196), Vector2(62, 150),
+	Vector2(52, 100), Vector2(80, 58), Vector2(140, 40),
+]
 
 ## Street circuit: right-angle corners around city blocks (clockwise,
 ## starting in the middle of the top street).
@@ -105,6 +113,14 @@ func _init(p_id: String = "gp") -> void:
 		scenery = {
 			"stand": Rect2(196, 92, 88, 14), "pit": Rect2(196, 160, 88, 10),
 			"trees": [Vector2(160, 118), Vector2(320, 118), Vector2(160, 158), Vector2(320, 158), Vector2(24, 30), Vector2(456, 30), Vector2(24, 230), Vector2(456, 240), Vector2(240, 258)],
+		}
+	elif id == "pradera":
+		half_width = 21.0
+		kerb_curv = 0.016
+		control = PRADERA_CONTROL
+		scenery = {
+			"stand": Rect2(200, 92, 90, 14), "pit": Rect2(200, 140, 70, 10),
+			"trees": [Vector2(130, 110), Vector2(150, 150), Vector2(330, 110), Vector2(360, 130), Vector2(300, 150), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
 		}
 	elif id == "callejero":
 		style = "city"
