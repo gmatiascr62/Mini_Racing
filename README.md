@@ -38,7 +38,13 @@ En el menú principal, el botón **< PISTA: ... >** cambia entre:
 - **BOSQUE** (fácil, pero no tanto): triángulo redondeado entre árboles, con una S.
 
 ![Óvalo](docs/oval.png) ![Serpentina](docs/serpentina.png) ![Callejero](docs/callejero.png)
+- **MONZA**: mini Monza sin chicanas (Curva Grande, Lesmo, Ascari y una
+  Parabólica amplia), dentro del parque.
+- **HOCKENHEIM**: inspirado en el viejo Hockenheim, rectas largas por el bosque
+  y la largada en el lado izquierdo.
+
 ![Campo](docs/campo.png) ![Pradera](docs/pradera.png) ![Bosque](docs/bosque.png)
+![Monza](docs/monza.png) ![Hockenheim](docs/hockenheim.png)
 
 La pista elegida se guarda en el celular. En online, la elige quien **crea** la
 partida y el servidor se la indica al que se une.
