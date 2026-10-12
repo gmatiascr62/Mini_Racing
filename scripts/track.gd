@@ -11,8 +11,18 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 215.0
 const MAX_SAFE_SPEED := 120.0
 
-const IDS := ["gp", "ovalo", "serpentina", "callejero", "campo", "pradera", "bosque", "monza"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "campo": "CAMPO", "pradera": "PRADERA", "bosque": "BOSQUE", "monza": "MONZA"}
+const IDS := ["gp", "ovalo", "serpentina", "callejero", "campo", "pradera", "bosque", "monza", "hockenheim"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "campo": "CAMPO", "pradera": "PRADERA", "bosque": "BOSQUE", "monza": "MONZA", "hockenheim": "HOCKENHEIM"}
+
+## Old Hockenheim (rotated to landscape) without the chicanes: stadium on the
+## left, long straights through the forest, Ost curve on the right.
+const HOCKENHEIM_CONTROL := [
+	Vector2(227, 235), Vector2(305, 216), Vector2(380, 179), Vector2(421, 145),
+	Vector2(437, 90), Vector2(443, 44), Vector2(424, 30), Vector2(380, 48),
+	Vector2(305, 89), Vector2(259, 120), Vector2(205, 137), Vector2(143, 159),
+	Vector2(121, 174), Vector2(97, 198), Vector2(103, 225), Vector2(130, 245),
+	Vector2(178, 243),
+]
 
 ## Mini Monza without the chicanes (traced from the circuit map), clockwise:
 ## main straight (heading left), Curva Grande, Lesmo, Serraglio, Ascari,
@@ -152,6 +162,11 @@ func _init(p_id: String = "gp") -> void:
 			"stand": Rect2(200, 92, 90, 14), "pit": Rect2(200, 140, 70, 10),
 			"trees": [Vector2(130, 110), Vector2(150, 150), Vector2(330, 110), Vector2(360, 130), Vector2(300, 150), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
 		}
+	elif id == "hockenheim":
+		half_width = 15.0
+		kerb_curv = 0.016
+		control = HOCKENHEIM_CONTROL
+		scenery = {"stand": Rect2(138, 196, 40, 9), "pit": Rect2(190, 190, 60, 8), "trees": []}
 	elif id == "monza":
 		half_width = 15.0
 		kerb_curv = 0.016
@@ -199,7 +214,7 @@ func _init(p_id: String = "gp") -> void:
 		}
 	_build()
 	_build_walls()
-	if id == "bosque" or id == "monza":
+	if id == "bosque" or id == "monza" or id == "hockenheim":
 		_plant_forest()
 
 
