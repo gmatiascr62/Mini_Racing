@@ -18,6 +18,9 @@ const TURN_RATE := 2.75
 const GRIP_ROAD := 225.0
 const GRIP_GRASS := 95.0
 const SKID_LAT := 13.0
+## Brake (both steering buttons pressed together): full speed to almost
+## stopped in a bit more than a second.
+const BRAKE_DECEL := 80.0
 const SKID_DRAG := 24.0
 ## Share of the sideways speed lost while sliding that the tyres turn back
 ## into forward speed (arcade drift: slides cost a little, not a lot).
@@ -109,6 +112,7 @@ class Car:
 	var heading := 0.0
 	var steer := 0.0
 	var throttle := 1.0
+	var brake := false
 	var vmax := 100.0
 	## Cornering speed multiplier for computer drivers (difficulty level).
 	var corner_skill := 1.0
@@ -218,7 +222,14 @@ func step(inputs: Dictionary = {}) -> void:
 	time += dt
 	for c in cars:
 		if c.human and not c.autopilot and not c.finished:
-			c.steer = clampf(float(inputs.get(c.id, 0.0)), -1.0, 1.0)
+			# Input: steer (-1..1) or Vector2(steer, brake).
+			var inp = inputs.get(c.id, 0.0)
+			if inp is Vector2:
+				c.steer = clampf(inp.x, -1.0, 1.0)
+				c.brake = inp.y > 0.5
+			else:
+				c.steer = clampf(float(inp), -1.0, 1.0)
+				c.brake = false
 			c.throttle = 1.0
 		else:
 			ai_drive(c, dt)
@@ -250,8 +261,10 @@ func step_car(c: Car, dt: float) -> void:
 	var right := Vector2(-dir.y, dir.x)
 	fwd = c.vel.dot(dir)
 	var lat := c.vel.dot(right)
-	# Engine (automatic throttle for humans) and drag.
-	if fwd < vmax:
+	# Engine (automatic throttle for humans), brake and drag.
+	if c.brake:
+		fwd = move_toward(fwd, 0.0, BRAKE_DECEL * dt)
+	elif fwd < vmax:
 		if c.throttle > 0.0:
 			var a := ACCEL * (1.0 - 0.55 * clampf(fwd / vmax, 0.0, 1.0)) * c.throttle
 			fwd = minf(fwd + a * dt, vmax)
@@ -338,6 +351,7 @@ func _collide_walls(c: Car) -> void:
 
 
 func ai_drive(c: Car, dt: float) -> void:
+	c.brake = false
 	var p: Dictionary = c.pers
 	var dir := c.forward()
 	var right := Vector2(-dir.y, dir.x)

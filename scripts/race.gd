@@ -117,6 +117,18 @@ func _steer_input() -> float:
 	return float(r) - float(l)
 
 
+## Both steering buttons (or both arrow keys, or down / S) = brake.
+func _brake_input() -> bool:
+	var l := Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A)
+	var r := Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D)
+	for idx in touches:
+		if touches[idx] < 0:
+			l = true
+		elif touches[idx] > 0:
+			r = true
+	return (l and r) or Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S)
+
+
 func _side_for(p: Vector2) -> int:
 	if p.y < 20.0:
 		return 0
@@ -180,7 +192,7 @@ func _physics_process(delta: float) -> void:
 	if online:
 		_online_tick()
 	else:
-		sim.step({my_id: _steer_input()})
+		sim.step({my_id: Vector2(_steer_input(), 1.0 if _brake_input() else 0.0)})
 		_handle_sim_events(sim.events)
 		_standings = sim.standings()
 		if sim.state == RaceSim.STATE_FINISHED and not show_results:
@@ -287,15 +299,17 @@ func _online_tick() -> void:
 	if Game.net.is_open() and sim.state == RaceSim.STATE_RACING and not me.finished and not show_results:
 		_seq += 1
 		var steer := _steer_input()
+		var brake := _brake_input()
 		if Game.autodrive:
 			sim.ai_drive(me, RaceSim.TICK)
 			steer = signf(me.steer) if absf(me.steer) > 0.3 else 0.0
-		_history.append([_seq, steer])
+		_history.append([_seq, steer, brake])
 		if _history.size() > 180:
 			_history.pop_front()
-		Game.net.send({"t": "in", "q": _seq, "s": steer})
+		Game.net.send({"t": "in", "q": _seq, "s": steer, "b": 1 if brake else 0})
 		if _predict:
 			me.steer = steer
+			me.brake = brake
 			me.throttle = 1.0
 			sim.step_car(me, RaceSim.TICK)
 	_render_offset *= 0.82
@@ -419,6 +433,7 @@ func _on_snapshot(msg: Dictionary) -> void:
 			_history.pop_front()
 		for h in _history:
 			me.steer = h[1]
+			me.brake = h[2]
 			sim.step_car(me, RaceSim.TICK)
 		_render_offset = old_pos - me.pos
 		if _render_offset.length() > 24.0:
@@ -531,9 +546,10 @@ func _draw_hud(ci: CanvasItem) -> void:
 
 func _draw_controls(ci: CanvasItem) -> void:
 	var s := _steer_input()
+	var braking := _brake_input()
 	for i in range(2):
 		var r := LEFT_BTN if i == 0 else RIGHT_BTN
-		var active := (s < 0.0 and i == 0) or (s > 0.0 and i == 1)
+		var active := braking or (s < 0.0 and i == 0) or (s > 0.0 and i == 1)
 		ci.draw_rect(r, Color(1, 1, 1, 0.28) if active else Color(0, 0, 0, 0.32))
 		ci.draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(1, 1, 1, 0.5))
 		ci.draw_rect(Rect2(r.position + Vector2(0, r.size.y - 1), Vector2(r.size.x, 1)), Color(1, 1, 1, 0.5))

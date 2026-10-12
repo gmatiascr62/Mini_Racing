@@ -55,6 +55,8 @@ El nivel se guarda en el celular. En online lo elige quien crea la partida.
   (en la PC: flechas o A/D). Toda la mitad izquierda/derecha de la pantalla
   responde, para que sea cómodo.
 - Al soltar, el auto sigue derecho.
+- **Frenar**: tocá los **dos botones a la vez** (en la PC: las dos flechas,
+  o abajo / S). Al soltar uno, el auto vuelve a acelerar.
 - Si doblás a fondo una curva cerrada a toda velocidad, el auto **derrapa**,
   deja marcas de goma y pierde velocidad.
 - En el **pasto** el auto pierde mucha velocidad; al volver al asfalto

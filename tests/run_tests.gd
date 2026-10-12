@@ -42,6 +42,7 @@ func _initialize() -> void:
 		test_offline_race(false)
 		test_offline_race(true)
 	test_levels()
+	test_brake()
 	# The online test races on the oval to cover track selection over the network.
 	track = Track.new("ovalo")
 	print("== online (server + 2 clients over WebSocket) ==")
@@ -188,6 +189,37 @@ func test_offline_race(human_bots: bool) -> void:
 
 func ft(t: float) -> String:
 	return "%d:%04.1f" % [int(t) / 60, fmod(t, 60.0)]
+
+
+func test_brake() -> void:
+	print("== brake (both buttons) ==")
+	var t := Track.new("ovalo")
+	var sim := RaceSim.new(t)
+	sim.setup(RaceSim.make_specs(["J1"]), 5)
+	sim.state = RaceSim.STATE_RACING
+	var c: RaceSim.Car = sim.cars[2]
+	# Full speed at the start of the top straight.
+	c.pos = t.point_at(0.0)
+	c.heading = t.tangent_at(0.0).angle()
+	c.vel = Vector2.from_angle(c.heading) * RaceSim.VMAX
+	c.track_idx = -1
+	c.steer = 0.0
+	c.brake = true
+	for i in range(int(60 * 1.3)):
+		sim.step_car(c, RaceSim.TICK)
+	var v1 := c.speed()
+	c.brake = false
+	for i in range(60):
+		sim.step_car(c, RaceSim.TICK)
+	var v2 := c.speed()
+	check(v1 < 10.0, "braking from full speed almost stops the car in 1.3 s (%.0f px/s)" % v1)
+	check(v2 > v1 + 20.0, "releasing one button accelerates again (%.0f px/s)" % v2)
+	# The brake input reaches the car through the race step (offline and server).
+	var sim2 := RaceSim.new(t)
+	sim2.setup(RaceSim.make_specs(["J1"]), 5)
+	sim2.state = RaceSim.STATE_RACING
+	sim2.step({2: Vector2(0.0, 1.0)})
+	check(sim2.cars[2].brake, "race step applies the brake input")
 
 
 func test_levels() -> void:

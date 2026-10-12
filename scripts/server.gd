@@ -17,6 +17,7 @@ class Peer:
 	var slot := -1
 	var inputs: Array = []
 	var steer := 0.0
+	var brake := 0.0
 	var ack := 0
 	var again := false
 
@@ -166,7 +167,7 @@ func _handle(p: Peer, msg: Dictionary) -> void:
 		"in":
 			if p.room_code == "" or p.inputs.size() >= MAX_INPUT_QUEUE:
 				return
-			p.inputs.append([int(msg.get("q", 0)), clampf(float(msg.get("s", 0.0)), -1.0, 1.0)])
+			p.inputs.append([int(msg.get("q", 0)), clampf(float(msg.get("s", 0.0)), -1.0, 1.0), 1.0 if int(msg.get("b", 0)) != 0 else 0.0])
 		"again":
 			if not rooms.has(p.room_code):
 				return
@@ -216,6 +217,7 @@ func _start_race(room: Room) -> void:
 		var p: Peer = peers[pid]
 		p.inputs.clear()
 		p.steer = 0.0
+		p.brake = 0.0
 		p.ack = 0
 		p.again = false
 		_send(p, {"t": "start", "code": room.code, "slot": slot, "car": RaceSim.human_car_id(slot), "names": all_names, "laps": room.laps, "track": room.track_id, "level": room.level})
@@ -246,9 +248,10 @@ func _tick_room(room: Room, dt: float) -> void:
 			var inp: Array = p.inputs.pop_front()
 			p.ack = inp[0]
 			p.steer = inp[1]
+			p.brake = inp[2]
 		elif sim.state != RaceSim.STATE_RACING:
 			p.inputs.clear()
-		inputs[RaceSim.human_car_id(slot)] = p.steer
+		inputs[RaceSim.human_car_id(slot)] = Vector2(p.steer, p.brake)
 	sim.step(inputs)
 	room.tick += 1
 	var crashes: Array = []
