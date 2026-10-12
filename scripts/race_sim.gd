@@ -15,10 +15,14 @@ const COAST_DECEL := 55.0
 const GRASS_DRAG := 170.0
 const OVERSPEED_DRAG := 60.0
 const TURN_RATE := 2.75
-const GRIP_ROAD := 185.0
+const GRIP_ROAD := 225.0
 const GRIP_GRASS := 95.0
 const SKID_LAT := 13.0
-const SKID_DRAG := 48.0
+const SKID_DRAG := 24.0
+## Share of the sideways speed lost while sliding that the tyres turn back
+## into forward speed (arcade drift: slides cost a little, not a lot).
+const DRIFT_TURN := 1.4
+const SLIDE_KEEP := 0.35
 const CAR_RADIUS := 3.6
 const CAR_OFFSET := 3.2
 const RESTITUTION := 0.45
@@ -238,7 +242,10 @@ func step_car(c: Car, dt: float) -> void:
 	# Steering: weaker at very low speed, but cars can always rotate a bit
 	# so they never get stuck against a wall.
 	var tf := clampf(0.35 + absf(fwd) / 45.0, 0.35, 1.0)
-	c.heading = wrapf(c.heading + c.steer * TURN_RATE * tf * dt, -PI, PI)
+	# While sliding the car rotates a little more (drift), so keeping speed in
+	# a slide does not make it run wide.
+	var drift := DRIFT_TURN if c.skidding else 1.0
+	c.heading = wrapf(c.heading + c.steer * TURN_RATE * tf * drift * dt, -PI, PI)
 	var dir := Vector2.from_angle(c.heading)
 	var right := Vector2(-dir.y, dir.x)
 	fwd = c.vel.dot(dir)
@@ -253,15 +260,14 @@ func step_car(c: Car, dt: float) -> void:
 	else:
 		fwd = move_toward(fwd, vmax, (OVERSPEED_DRAG if c.on_road else GRASS_DRAG) * dt)
 	# Tyre grip: lateral velocity is removed up to the grip limit. Whatever
-	# remains is a slide, which scrubs speed.
+	# remains is a slide, which scrubs a little speed.
 	c.skidding = absf(lat) > SKID_LAT
-	var corr := grip * dt
-	if absf(lat) <= corr:
-		lat = 0.0
-	else:
-		lat -= signf(lat) * corr
+	var corr := minf(grip * dt, absf(lat))
+	lat -= signf(lat) * corr
 	if c.skidding:
 		fwd = move_toward(fwd, 0.0, SKID_DRAG * dt)
+		if c.throttle > 0.0 and fwd < vmax:
+			fwd = minf(fwd + corr * SLIDE_KEEP, vmax)
 	c.vel = dir * fwd + right * lat
 	c.pos += c.vel * dt
 	# Screen edges act as walls.
