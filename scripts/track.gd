@@ -11,8 +11,16 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 215.0
 const MAX_SAFE_SPEED := 120.0
 
-const IDS := ["gp", "ovalo", "serpentina", "callejero", "pradera"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "pradera": "PRADERA"}
+const IDS := ["gp", "ovalo", "serpentina", "callejero", "pradera", "lago"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "pradera": "PRADERA", "lago": "LAGO"}
+
+## Easy circuit around a lake: wide road, one long straight and a big arc.
+const LAGO_CONTROL := [
+	Vector2(240, 205), Vector2(170, 205), Vector2(112, 198), Vector2(72, 170),
+	Vector2(54, 125), Vector2(72, 80), Vector2(120, 48), Vector2(200, 34),
+	Vector2(280, 34), Vector2(360, 48), Vector2(408, 80), Vector2(426, 125),
+	Vector2(408, 170), Vector2(368, 198), Vector2(310, 205),
+]
 
 ## Easy circuit: wide road and long, gentle curves (clockwise).
 const PRADERA_CONTROL := [
@@ -113,6 +121,14 @@ func _init(p_id: String = "gp") -> void:
 		scenery = {
 			"stand": Rect2(196, 92, 88, 14), "pit": Rect2(196, 160, 88, 10),
 			"trees": [Vector2(160, 118), Vector2(320, 118), Vector2(160, 158), Vector2(320, 158), Vector2(24, 30), Vector2(456, 30), Vector2(24, 230), Vector2(456, 240), Vector2(240, 258)],
+		}
+	elif id == "lago":
+		half_width = 21.0
+		kerb_curv = 0.016
+		control = LAGO_CONTROL
+		scenery = {
+			"lake": Rect2(150, 82, 180, 80), "stand": Rect2(190, 236, 100, 12), "pit": Rect2(0, 0, 0, 0),
+			"trees": [Vector2(130, 100), Vector2(126, 140), Vector2(350, 100), Vector2(354, 140), Vector2(24, 30), Vector2(456, 30), Vector2(24, 120), Vector2(456, 130), Vector2(130, 250), Vector2(350, 250)],
 		}
 	elif id == "pradera":
 		half_width = 21.0

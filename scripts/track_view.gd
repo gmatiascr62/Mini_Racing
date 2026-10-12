@@ -173,6 +173,29 @@ func _quad(a: Vector2, b: Vector2, na: Vector2, nb: Vector2, from: float, to: fl
 
 
 func _draw_scenery() -> void:
+	# Lake with ripples and a couple of ducks.
+	var lake: Rect2 = track.scenery.get("lake", Rect2())
+	if lake.size.x > 0.0:
+		var c := lake.get_center()
+		var shore := PackedVector2Array()
+		var water := PackedVector2Array()
+		for k in range(40):
+			var a := TAU * k / 40.0
+			shore.append(c + Vector2(cos(a) * (lake.size.x / 2.0 + 3.0), sin(a) * (lake.size.y / 2.0 + 3.0)))
+			water.append(c + Vector2(cos(a) * lake.size.x / 2.0, sin(a) * lake.size.y / 2.0))
+		draw_colored_polygon(shore, Pal.SAND)
+		draw_colored_polygon(water, Color("#3a5fb0"))
+		var lr := RandomNumberGenerator.new()
+		lr.seed = 5
+		for k in range(40):
+			var a := lr.randf() * TAU
+			var r := sqrt(lr.randf()) * 0.8
+			var p := c + Vector2(cos(a) * lake.size.x / 2.0 * r, sin(a) * lake.size.y / 2.0 * r)
+			draw_rect(Rect2(p.floor(), Vector2(3, 1)), Color("#5f86d6"))
+		for d in [c + Vector2(-30, -8), c + Vector2(24, 10)]:
+			draw_rect(Rect2(d, Vector2(4, 3)), Pal.WHITE)
+			draw_rect(Rect2(d + Vector2(3, -2), Vector2(2, 2)), Pal.WHITE)
+			draw_rect(Rect2(d + Vector2(5, -1), Vector2(1, 1)), Pal.ORANGE)
 	# Grandstand with a pixel crowd.
 	var gs: Rect2 = track.scenery.get("stand", Rect2())
 	if gs.size.x > 0.0:
