@@ -8,7 +8,7 @@ const HALF_WIDTH := 16.0
 const KERB_WIDTH := 3.0
 const TARGET_STEP := 4.0
 ## Lateral grip used to compute the safe cornering speed (must match RaceSim).
-const SAFE_GRIP := 175.0
+const SAFE_GRIP := 215.0
 const MAX_SAFE_SPEED := 120.0
 
 const IDS := ["gp", "ovalo", "serpentina", "callejero"]
@@ -78,6 +78,12 @@ var kerb_curv := 0.012
 var scenery: Dictionary = {}
 var control: Array = []
 var wall_lines: Array = []
+## Street circuits: barriers along both road edges at this distance from the
+## centerline (0 = no edge barriers).
+var edge_wall := 0.0
+## Extra cornering speed for computer drivers on this circuit (tight
+## right-angle corners are faster than the plain grip estimate suggests).
+var cpu_corner := 1.0
 var fixed_wall_lines: Array = []
 var pts := PackedVector2Array()
 var tangents := PackedVector2Array()
@@ -102,6 +108,8 @@ func _init(p_id: String = "gp") -> void:
 		}
 	elif id == "callejero":
 		style = "city"
+		edge_wall = 15.0 + 2.0
+		cpu_corner = 1.5
 		half_width = 15.0
 		kerb_curv = 0.02
 		control = _rounded_path(Vector2(230, 36), CALLEJERO_CORNERS, 20.0)
