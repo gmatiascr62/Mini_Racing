@@ -83,5 +83,5 @@ func _draw_layer() -> void:
 	ui.draw(ci)
 	if fmod(t, 1.2) < 0.8:
 		PixelFont.draw_text_centered(ci, "2 JUGADORES ONLINE + 4 CPU", 240, 222, 1, Pal.LIGHT_GREEN, Pal.BLACK)
-	PixelFont.draw_text_centered(ci, "DOBLA CON LOS BOTONES DE LAS ESQUINAS", 240, 236, 1, Pal.LIGHT_GREY, Pal.BLACK)
+	PixelFont.draw_text_centered(ci, "DOBLA CON LOS BOTONES DE ABAJO A LA DERECHA", 240, 236, 1, Pal.LIGHT_GREY, Pal.BLACK)
 	PixelFont.draw_text(ci, "V1.0", Vector2(450, 258), 1, Pal.GREY)

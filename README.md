@@ -62,9 +62,9 @@ El nivel se guarda en el celular. En online lo elige quien crea la partida.
 ## Cómo se juega
 
 - Los autos **aceleran solos**. Vos solo doblás.
-- Botones táctiles en las **esquinas inferiores**: izquierda / derecha
-  (en la PC: flechas o A/D). Toda la mitad izquierda/derecha de la pantalla
-  responde, para que sea cómodo.
+- Los dos botones táctiles están **juntos abajo a la derecha**: izquierda y
+  derecha (en la PC: flechas o A/D). Toda la franja derecha de la pantalla
+  responde, para que sea cómodo de usar con un pulgar.
 - Al soltar, el auto sigue derecho.
 - Si doblás a fondo una curva cerrada a toda velocidad, el auto **derrapa**,
   deja marcas de goma y pierde velocidad.

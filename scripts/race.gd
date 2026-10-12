@@ -4,8 +4,13 @@ extends Node2D
 ## and interpolates the other cars from server snapshots.
 
 const INTERP_TICKS := 5.0
-const LEFT_BTN := Rect2(6, 206, 74, 58)
-const RIGHT_BTN := Rect2(400, 206, 74, 58)
+## Both steering buttons sit together in the bottom-right corner.
+const LEFT_BTN := Rect2(342, 210, 60, 54)
+const RIGHT_BTN := Rect2(414, 210, 60, 54)
+## Touches right of this line steer; the split between the buttons decides
+## left or right.
+const TOUCH_ZONE_X := 290.0
+const TOUCH_SPLIT_X := 408.0
 const MARK_ROAD := Color(0.13, 0.13, 0.13, 0.75)
 const MARK_GRASS := Color(0.2, 0.33, 0.13, 0.8)
 
@@ -120,11 +125,9 @@ func _steer_input() -> float:
 func _side_for(p: Vector2) -> int:
 	if p.y < 20.0:
 		return 0
-	if p.x < 160.0:
-		return -1
-	if p.x > 320.0:
-		return 1
-	return 0
+	if p.x < TOUCH_ZONE_X:
+		return 0
+	return -1 if p.x < TOUCH_SPLIT_X else 1
 
 
 func _input(event: InputEvent) -> void:
