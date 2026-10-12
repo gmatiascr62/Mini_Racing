@@ -11,8 +11,15 @@ const TARGET_STEP := 4.0
 const SAFE_GRIP := 175.0
 const MAX_SAFE_SPEED := 120.0
 
-const IDS := ["gp", "ovalo", "serpentina"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA"}
+const IDS := ["gp", "ovalo", "serpentina", "callejero"]
+const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO"}
+
+## Street circuit: right-angle corners around city blocks (clockwise,
+## starting in the middle of the top street).
+const CALLEJERO_CORNERS := [
+	Vector2(440, 40), Vector2(440, 130), Vector2(360, 130), Vector2(360, 230),
+	Vector2(240, 230), Vector2(240, 170), Vector2(40, 170), Vector2(40, 40),
+]
 
 ## Twisty walled circuit. Starts on the bottom straight heading left.
 const SERPENTINA_CONTROL := [
@@ -55,6 +62,8 @@ const GP_CONTROL := [
 ]
 
 var id := "gp"
+## "grass" (countryside circuit) or "city" (street circuit).
+var style := "grass"
 var title := "GRAN PREMIO"
 var half_width := HALF_WIDTH
 ## Barrier walls in the infield (polylines). Cars bounce off them, so they
@@ -90,6 +99,12 @@ func _init(p_id: String = "gp") -> void:
 			"stand": Rect2(196, 92, 88, 14), "pit": Rect2(196, 160, 88, 10),
 			"trees": [Vector2(160, 118), Vector2(320, 118), Vector2(160, 158), Vector2(320, 158), Vector2(24, 30), Vector2(456, 30), Vector2(24, 230), Vector2(456, 240), Vector2(240, 258)],
 		}
+	elif id == "callejero":
+		style = "city"
+		half_width = 14.0
+		kerb_curv = 0.02
+		control = _rounded_path(Vector2(240, 40), CALLEJERO_CORNERS, 22.0)
+		scenery = {"stand": Rect2(0, 0, 0, 0), "pit": Rect2(0, 0, 0, 0), "trees": []}
 	elif id == "serpentina":
 		half_width = 13.0
 		kerb_curv = 0.014
@@ -198,6 +213,36 @@ func _centre_between_sections(p: Vector2) -> Vector2:
 	if i2 < 0 or d2 > 130.0 * 130.0:
 		return p
 	return (q1 + pts[i2]) * 0.5
+
+
+## Closed path through right-angle corners, each rounded with radius r.
+## Starts at start (on the segment from the last corner to the first).
+static func _rounded_path(start: Vector2, corners: Array, r: float) -> Array:
+	var out: Array = [start]
+	var cn := corners.size()
+	var prev := start
+	for i in range(cn):
+		var c: Vector2 = corners[i]
+		var nxt: Vector2 = corners[(i + 1) % cn] if i < cn - 1 else corners[0]
+		if i == cn - 1:
+			nxt = start
+		var a := c + (prev - c).normalized() * r
+		var b := c + (nxt - c).normalized() * r
+		# Straight part up to the corner.
+		var d := prev.distance_to(a)
+		var steps := int(d / 30.0)
+		for k in range(1, steps + 1):
+			out.append(prev.lerp(a, float(k) / (steps + 1)))
+		# Rounded corner (quadratic Bezier a -> c -> b).
+		for k in range(5):
+			var t := k / 4.0
+			out.append(a.lerp(c, t).lerp(c.lerp(b, t), t))
+		prev = b
+	var d2 := prev.distance_to(start)
+	var steps2 := int(d2 / 30.0)
+	for k in range(1, steps2 + 1):
+		out.append(prev.lerp(start, float(k) / (steps2 + 1)))
+	return out
 
 
 ## Stadium-shaped oval: two straights joined by half circles, clockwise,
