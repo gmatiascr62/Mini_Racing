@@ -90,19 +90,19 @@ func _draw_city() -> void:
 	draw_rect(Rect2(0, 0, 480, 270), Color("#8c8c8c"))
 	for y in range(0, 270, 8):
 		draw_rect(Rect2(0, y, 480, 1), Color("#828282"))
-	# Harbour (bottom left) with a quay and moored boats.
-	var harbour := Rect2(0, 194, 228, 76)
+	# Harbour (top right) with a quay and moored boats.
+	var harbour := Rect2(312, 12, 168, 44)
 	draw_rect(harbour, Color("#3a5fb0"))
 	var wrng := RandomNumberGenerator.new()
 	wrng.seed = 99
 	for k in range(90):
-		var wp := harbour.position + Vector2(wrng.randi_range(0, 226), wrng.randi_range(2, 74))
+		var wp := harbour.position + Vector2(wrng.randi_range(0, int(harbour.size.x) - 3), wrng.randi_range(0, int(harbour.size.y) - 2))
 		draw_rect(Rect2(wp, Vector2(3, 1)), Color("#5f86d6"))
-	draw_rect(Rect2(0, 192, 228, 3), Pal.LIGHT_GREY)
-	for bx in [100, 128, 156, 184]:
-		draw_rect(Rect2(bx, 204, 7, 14), Pal.WHITE)
-		draw_rect(Rect2(bx + 1, 206, 5, 5), Pal.CYAN)
-		draw_rect(Rect2(bx + 3, 195, 1, 9), Pal.LIGHT_GREY)
+	draw_rect(Rect2(harbour.position.x, harbour.end.y, harbour.size.x, 3), Pal.LIGHT_GREY)
+	for bx in [340, 366, 392, 418, 444]:
+		draw_rect(Rect2(bx, 36, 7, 14), Pal.WHITE)
+		draw_rect(Rect2(bx + 1, 41, 5, 5), Pal.CYAN)
+		draw_rect(Rect2(bx + 3, 50, 1, 6), Pal.LIGHT_GREY)
 	# City blocks: buildings and small parks, kept clear of the circuit.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 2024

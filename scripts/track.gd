@@ -17,8 +17,11 @@ const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTIN
 ## Street circuit: right-angle corners around city blocks (clockwise,
 ## starting in the middle of the top street).
 const CALLEJERO_CORNERS := [
-	Vector2(440, 40), Vector2(440, 130), Vector2(360, 130), Vector2(360, 230),
-	Vector2(240, 230), Vector2(240, 170), Vector2(40, 170), Vector2(40, 40),
+	Vector2(290, 36), Vector2(290, 76), Vector2(448, 76), Vector2(448, 160),
+	Vector2(376, 160), Vector2(376, 236), Vector2(300, 236), Vector2(300, 190),
+	Vector2(250, 190), Vector2(250, 236), Vector2(110, 236), Vector2(110, 184),
+	Vector2(40, 184), Vector2(40, 120), Vector2(180, 120), Vector2(180, 80),
+	Vector2(100, 80), Vector2(100, 36),
 ]
 
 ## Twisty walled circuit. Starts on the bottom straight heading left.
@@ -101,9 +104,9 @@ func _init(p_id: String = "gp") -> void:
 		}
 	elif id == "callejero":
 		style = "city"
-		half_width = 14.0
+		half_width = 15.0
 		kerb_curv = 0.02
-		control = _rounded_path(Vector2(240, 40), CALLEJERO_CORNERS, 22.0)
+		control = _rounded_path(Vector2(230, 36), CALLEJERO_CORNERS, 20.0)
 		scenery = {"stand": Rect2(0, 0, 0, 0), "pit": Rect2(0, 0, 0, 0), "trees": []}
 	elif id == "serpentina":
 		half_width = 13.0
