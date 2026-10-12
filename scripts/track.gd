@@ -109,7 +109,7 @@ func _init(p_id: String = "gp") -> void:
 	elif id == "callejero":
 		style = "city"
 		edge_wall = 15.0 + 2.0
-		cpu_corner = 1.5
+		cpu_corner = 1.8
 		half_width = 15.0
 		kerb_curv = 0.02
 		control = _rounded_path(Vector2(230, 36), CALLEJERO_CORNERS, 20.0)
