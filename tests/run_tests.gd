@@ -77,6 +77,8 @@ func test_track() -> void:
 	check(grid_ok, "all grid slots on asphalt")
 	if not track.wall_lines.is_empty() or not track.fixed_wall_lines.is_empty():
 		test_walls()
+	if track.edge_wall > 0.0:
+		test_edge_walls()
 
 
 func test_walls() -> void:
@@ -119,6 +121,26 @@ func test_walls() -> void:
 						crossed += 1
 						break
 	check(crossed == 0, "cars cannot drive through the walls (%d of %d attempts got through)" % [crossed, tries])
+
+
+func test_edge_walls() -> void:
+	# A car steering hard into the street barriers anywhere on the lap stays on the road.
+	var max_lat := 0.0
+	for start in range(0, track.n, 5):
+		for dir in [-1.0, 1.0]:
+			var sim := RaceSim.new(track)
+			sim.setup(RaceSim.make_specs(["J1"]), 5)
+			var c: RaceSim.Car = sim.cars[2]
+			var s0 := start * track.step
+			c.pos = track.point_at(s0)
+			c.heading = track.tangent_at(s0).angle()
+			c.vel = Vector2.from_angle(c.heading) * 95.0
+			c.track_idx = -1
+			for t in range(90):
+				c.steer = dir
+				sim.step_car(c, RaceSim.TICK)
+				max_lat = maxf(max_lat, absf(track.locate(c.pos, c.track_idx).y))
+	check(max_lat <= track.edge_wall, "street barriers keep cars on the road (max %.1f px, barrier at %.1f px)" % [max_lat, track.edge_wall])
 
 
 func test_offline_race(human_bots: bool) -> void:

@@ -29,7 +29,11 @@ En el menú principal, el botón **< PISTA: ... >** cambia entre:
   entre los tramos de pista (no se puede cortar camino de un tramo a otro: el
   auto rebota contra la pared).
 
-![Óvalo](docs/oval.png) ![Serpentina](docs/serpentina.png)
+- **CALLEJERO**: circuito urbano entre manzanas de edificios, con una chicana
+  junto al puerto y **barreras** a ambos lados de la calle (si te pasás en una
+  esquina, rebotás contra la barrera).
+
+![Óvalo](docs/oval.png) ![Serpentina](docs/serpentina.png) ![Callejero](docs/callejero.png)
 
 La pista elegida se guarda en el celular. En online, la elige quien **crea** la
 partida y el servidor se la indica al que se une.

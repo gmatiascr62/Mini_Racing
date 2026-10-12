@@ -295,6 +295,19 @@ func step_car(c: Car, dt: float) -> void:
 	if hit:
 		c.vel *= 0.7
 		events.append({"type": "crash", "pos": c.pos, "power": 30.0})
+	# Street circuits: barriers along both edges of the road.
+	if track.edge_wall > 0.0:
+		var wl := track.locate(c.pos, c.track_idx)
+		var limit := track.edge_wall - CAR_RADIUS
+		if absf(wl.y) > limit:
+			var nrm := track.normal_at(wl.x) * signf(wl.y)
+			c.pos -= nrm * (absf(wl.y) - limit)
+			var vn := c.vel.dot(nrm)
+			if vn > 0.0:
+				c.vel -= nrm * vn * 1.4
+				c.vel *= 0.92
+				if vn > 15.0:
+					events.append({"type": "crash", "pos": c.pos + nrm * CAR_RADIUS, "power": vn})
 	# Infield barrier walls: bounce off them (no cutting across).
 	if not track.wall_segments.is_empty():
 		_collide_walls(c)
@@ -388,7 +401,7 @@ func ai_drive(c: Car, dt: float) -> void:
 	c.steer = clampf(diff * float(p["gain"]), -1.0, 1.0)
 	# Speed: lift off before corners that are too fast for us.
 	var horizon := fwd * 0.75 + 22.0
-	var vt := track.min_safe_speed(c.s, c.s + horizon) * float(p["corner"]) * c.corner_skill
+	var vt := track.min_safe_speed(c.s, c.s + horizon) * float(p["corner"]) * c.corner_skill * track.cpu_corner
 	if absf(diff) > 0.9:
 		vt = minf(vt, 45.0)
 	c.throttle = 1.0 if fwd < minf(vt, c.vmax) else 0.0
