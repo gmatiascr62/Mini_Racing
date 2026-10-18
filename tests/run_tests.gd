@@ -35,15 +35,11 @@ func check(cond: bool, what: String) -> void:
 
 
 func _initialize() -> void:
-	for id in Track.IDS:
-		track = Track.new(id)
-		print("######## track: %s ########" % id)
-		test_track()
-		test_offline_race(false)
-		test_offline_race(true)
+	track = Track.new()
+	test_track()
+	test_offline_race(false)
+	test_offline_race(true)
 	test_levels()
-	# The online test races on the oval to cover track selection over the network.
-	track = Track.new("ovalo")
 	print("== online (server + 2 clients over WebSocket) ==")
 	server = RaceServer.new()
 	server.verbose = false
@@ -56,18 +52,18 @@ func _initialize() -> void:
 	c1.message.connect(func(m: Dictionary) -> void: _on_msg(1, m))
 	c2.message.connect(func(m: Dictionary) -> void: _on_msg(2, m))
 	c1.open("ws://127.0.0.1:%d" % PORT)
-	c1.send({"t": "create", "v": NetConfig.PROTOCOL, "laps": 1, "track": "ovalo", "level": 0})
+	c1.send({"t": "create", "v": NetConfig.PROTOCOL, "laps": 1, "track": "indy", "level": 0})
 	_set_phase("wait_room")
 
 
 func test_track() -> void:
 	print("== track ==")
-	check(track.length > 700.0 and track.length < 1800.0, "track length %.0f px" % track.length)
+	check(track.length > 1800.0 and track.length < 3000.0, "track length %.0f px" % track.length)
 	var inside := true
 	for p in track.pts:
-		if p.x < 20 or p.x > 460 or p.y < 28 or p.y > 252:
+		if p.x < 30 or p.x > Track.WORLD.x - 30 or p.y < 30 or p.y > Track.WORLD.y - 30:
 			inside = false
-	check(inside, "whole circuit fits on screen")
+	check(inside, "whole circuit fits inside the fenced world")
 	var grid_ok := true
 	for k in range(RaceSim.CAR_COUNT):
 		var slot := track.grid_slot(k)
@@ -75,78 +71,23 @@ func test_track() -> void:
 		if not track.is_on_road(loc.y):
 			grid_ok = false
 	check(grid_ok, "all grid slots on asphalt")
-	if not track.wall_lines.is_empty() or not track.fixed_wall_lines.is_empty():
-		test_walls()
-	if track.edge_wall > 0.0:
-		test_edge_walls()
-
-
-func test_walls() -> void:
-	check(track.wall_segments.size() > 10, "infield barrier walls exist (%d segments)" % track.wall_segments.size())
-	# Walls never touch the road or the kerbs.
-	var closest := INF
-	for w in track.walls:
-		for p in w:
-			closest = minf(closest, absf(track.locate(p).y))
-	check(closest >= track.half_width + Track.KERB_WIDTH, "walls stay off the road (closest %.1f px from the centerline)" % closest)
-	# Cars driven straight at any wall segment, from either side, never get through.
-	var crossed := 0
-	var tries := 0
-	for seg in track.wall_segments:
-		var a: Vector2 = seg[0]
-		var b: Vector2 = seg[1]
-		var nrm := (b - a).normalized().orthogonal()
-		for probe in [[0.25, 0.0], [0.5, 0.0], [0.75, 0.0], [0.5, 0.7], [0.5, -0.7]]:
-			for side in [-1.0, 1.0]:
-				var mid: Vector2 = a.lerp(b, probe[0])
-				var aim: Vector2 = (-nrm * side).rotated(probe[1])
-				# Starting points outside the playable area are impossible in a race.
-				var start: Vector2 = mid - aim * 12.0
-				if start.y < RaceSim.BOUNDS_MARGIN + 12.0 or start.x < RaceSim.BOUNDS_MARGIN + 2.0 or start.x > RaceSim.SCREEN.x - RaceSim.BOUNDS_MARGIN - 2.0:
-					continue
-				var sim := RaceSim.new(track)
-				sim.setup(RaceSim.make_specs(["J1"]), 5)
-				var c: RaceSim.Car = sim.cars[2]
-				c.pos = mid - aim * 12.0
-				c.heading = aim.angle()
-				c.vel = aim * 100.0
-				c.track_idx = -1
-				tries += 1
-				for t in range(40):
-					c.steer = 0.0
-					sim.step_car(c, RaceSim.TICK)
-					var rel := c.pos - a
-					var along := rel.dot((b - a).normalized())
-					if along > 0.0 and along < a.distance_to(b) and rel.dot(nrm) * side < 0.0:
-						crossed += 1
-						break
-	check(crossed == 0, "cars cannot drive through the walls (%d of %d attempts got through)" % [crossed, tries])
-
-
-func test_edge_walls() -> void:
-	# A car steering hard into the street barriers anywhere on the lap stays on the road.
-	var max_lat := 0.0
-	for start in range(0, track.n, 5):
-		for dir in [-1.0, 1.0]:
-			var sim := RaceSim.new(track)
-			sim.setup(RaceSim.make_specs(["J1"]), 5)
-			var c: RaceSim.Car = sim.cars[2]
-			var s0 := start * track.step
-			c.pos = track.point_at(s0)
-			c.heading = track.tangent_at(s0).angle()
-			c.vel = Vector2.from_angle(c.heading) * 95.0
-			c.track_idx = -1
-			for t in range(90):
-				c.steer = dir
-				sim.step_car(c, RaceSim.TICK)
-				max_lat = maxf(max_lat, absf(track.locate(c.pos, c.track_idx).y))
-	check(max_lat <= track.edge_wall, "street barriers keep cars on the road (max %.1f px, barrier at %.1f px)" % [max_lat, track.edge_wall])
+	var clear := true
+	for p in track.scenery["trees"]:
+		if absf(track.locate(p).y) < track.half_width + Track.KERB_WIDTH + 4.0:
+			clear = false
+	for r in track.scenery["stands"] + [track.scenery["pit"]]:
+		var rect: Rect2 = r
+		for q in [rect.position, rect.end, rect.get_center(), Vector2(rect.end.x, rect.position.y), Vector2(rect.position.x, rect.end.y)]:
+			if absf(track.locate(q).y) < track.half_width + Track.KERB_WIDTH:
+				clear = false
+	check(clear, "trees, grandstands and pits stay off the road")
 
 
 func test_offline_race(human_bots: bool) -> void:
-	print("== full 5-lap race (%s) ==" % ("2 steering bots + 4 CPU" if human_bots else "6 computer drivers"))
+	var laps := RaceSim.DEFAULT_LAPS
+	print("== full %d-lap race (%s) ==" % [laps, "2 steering bots + 4 CPU" if human_bots else "6 computer drivers"])
 	var sim := RaceSim.new(track)
-	sim.setup(RaceSim.make_specs(["J1", "J2"]), 5)
+	sim.setup(RaceSim.make_specs(["J1", "J2"]), laps)
 	if not human_bots:
 		for c in sim.cars:
 			c.autopilot = true
@@ -175,9 +116,9 @@ func test_offline_race(human_bots: bool) -> void:
 		print("     %d %-8s %s best %s off-track %.1fs" % [r["pos"], r["name"], ft(r["time"]), ft(r["best"]), offroad.get(r["id"], 0) / 60.0])
 		if not r["finished"]:
 			all_fin = false
-	check(all_fin, "all six cars completed 5 laps")
+	check(all_fin, "all six cars completed %d laps" % laps)
 	check(respawns <= 2, "cars do not get stuck (respawns: %d)" % respawns)
-	var max_time := track.length * 5.0 / 45.0
+	var max_time := track.length * laps / 45.0
 	check(sim.time < max_time, "no traffic jams (race %.0f s, limit %.0f s)" % [sim.time, max_time])
 	var max_off := 0.0
 	for id in offroad:
@@ -191,10 +132,10 @@ func ft(t: float) -> String:
 
 
 func test_levels() -> void:
-	print("== difficulty levels (CPU-only race on the GP) ==")
+	print("== difficulty levels (CPU-only race) ==")
 	var winners: Array = []
 	for lvl in range(RaceSim.LEVEL_NAMES.size()):
-		var sim := RaceSim.new(Track.new("gp"))
+		var sim := RaceSim.new(Track.new())
 		sim.setup(RaceSim.make_specs([]), 3, lvl)
 		var ticks := 0
 		while sim.state != RaceSim.STATE_FINISHED and ticks < 60 * 300:
@@ -295,7 +236,7 @@ func _physics_process(delta: float) -> bool:
 				var s2: Dictionary = log2.filter(func(m): return m["t"] == "start")[0]
 				check(int(s1["car"]) != int(s2["car"]), "players drive different cars (%d, %d)" % [s1["car"], s2["car"]])
 				check((s1["names"] as Array).size() == 6, "6 cars in the race")
-				check(str(s1.get("track", "")) == "ovalo" and str(s2.get("track", "")) == "ovalo", "both players race on the track chosen by the creator")
+				check(str(s1.get("track", "")) == "indy" and str(s2.get("track", "")) == "indy", "both players race on the oval")
 				check(int(s1.get("level", -1)) == 0 and int(s2.get("level", -1)) == 0, "both players get the difficulty chosen by the creator")
 				_set_phase("race1")
 		"race1", "race2":

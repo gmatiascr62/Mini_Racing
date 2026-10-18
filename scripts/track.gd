@@ -1,139 +1,39 @@
 class_name Track
 extends RefCounted
-## A Mini Racing circuit ("gp", "ovalo" or "serpentina"). The whole track fits in the 480x270 screen.
+## The Mini Racing circuit: an Indianapolis-style oval in a 960x540 world.
 ## The centerline is a closed Catmull-Rom spline resampled at a uniform step,
 ## so "s" (distance along the track) maps directly to a sample index.
 
-const HALF_WIDTH := 16.0
+const HALF_WIDTH := 20.0
 const KERB_WIDTH := 3.0
 const TARGET_STEP := 4.0
 ## Lateral grip used to compute the safe cornering speed (must match RaceSim).
 const SAFE_GRIP := 215.0
 const MAX_SAFE_SPEED := 120.0
+## Size of the playing area (twice the 480x270 screen). The camera follows
+## the player's car, so only part of it is on screen at a time.
+const WORLD := Vector2(960, 540)
 
-const IDS := ["gp", "ovalo", "serpentina", "callejero", "campo", "pradera", "bosque", "monza", "hockenheim"]
-const TITLES := {"gp": "GRAN PREMIO", "ovalo": "OVALO", "serpentina": "SERPENTINA", "callejero": "CALLEJERO", "campo": "CAMPO", "pradera": "PRADERA", "bosque": "BOSQUE", "monza": "MONZA", "hockenheim": "HOCKENHEIM"}
+const IDS := ["indy"]
+const TITLES := {"indy": "INDIANAPOLIS"}
 
-## Old Hockenheim (rotated to landscape) without the chicanes: stadium on the
-## left, long straights through the forest, Ost curve on the right.
-const HOCKENHEIM_CONTROL := [
-	Vector2(41, 118), Vector2(40, 150), Vector2(44, 198), Vector2(64, 228),
-	Vector2(120, 240), Vector2(200, 240), Vector2(290, 240), Vector2(350, 236),
-	Vector2(395, 220), Vector2(428, 198), Vector2(444, 160), Vector2(440, 118),
-	Vector2(420, 92), Vector2(385, 74), Vector2(335, 58), Vector2(290, 45),
-	Vector2(220, 36), Vector2(140, 37), Vector2(82, 43), Vector2(54, 62),
-	Vector2(43, 92),
-]
+## Indianapolis-style oval (proportions of the real one): two long straights,
+## two short chutes and four 90-degree turns of equal radius. Driven
+## counter-clockwise, starting on the front straight (bottom).
+const INDY_CENTRE := Vector2(480, 270)
+const INDY_STRAIGHT := 560.0
+const INDY_CHUTE := 110.0
+const INDY_RADIUS := 150.0
 
-## Mini Monza without the chicanes (traced from the circuit map), clockwise:
-## main straight (heading left), Curva Grande, Lesmo, Serraglio, Ascari,
-## back straight and Parabolica.
-const MONZA_CONTROL := [
-	Vector2(309, 200), Vector2(220, 200), Vector2(152, 199), Vector2(116, 191),
-	Vector2(96, 171), Vector2(85, 136), Vector2(74, 98), Vector2(60, 65),
-	Vector2(50, 44), Vector2(63, 33), Vector2(105, 32), Vector2(124, 44),
-	Vector2(150, 68), Vector2(184, 94), Vector2(214, 112), Vector2(242, 121),
-	Vector2(281, 124), Vector2(360, 124), Vector2(412, 126), Vector2(442, 138),
-	Vector2(458, 162), Vector2(452, 186), Vector2(428, 199), Vector2(395, 201),
-	Vector2(352, 200),
-]
-
-## Easiest circuit: very wide road and long, gentle curves (clockwise).
-const CAMPO_CONTROL := [
-	Vector2(220, 40), Vector2(320, 40), Vector2(405, 52), Vector2(446, 98),
-	Vector2(436, 148), Vector2(392, 176), Vector2(330, 186), Vector2(280, 206),
-	Vector2(222, 230), Vector2(152, 228), Vector2(102, 196), Vector2(62, 150),
-	Vector2(52, 100), Vector2(80, 58), Vector2(140, 40),
-]
-
-## Easy-but-not-too-easy circuit through a forest: rounded triangle with an
-## S on the left side.
-const BOSQUE_CONTROL := [
-	Vector2(200, 38), Vector2(320, 38), Vector2(410, 48), Vector2(444, 84),
-	Vector2(430, 128), Vector2(380, 170), Vector2(320, 210), Vector2(262, 232),
-	Vector2(212, 222), Vector2(178, 186), Vector2(150, 160), Vector2(108, 148),
-	Vector2(66, 120), Vector2(56, 78), Vector2(90, 46), Vector2(140, 38),
-]
-
-## Easy circuit: wide road and long, gentle curves (clockwise).
-const PRADERA_CONTROL := [
-	Vector2(220, 40), Vector2(320, 40), Vector2(405, 52), Vector2(446, 98),
-	Vector2(432, 146), Vector2(380, 168), Vector2(318, 168), Vector2(278, 196),
-	Vector2(232, 230), Vector2(160, 230), Vector2(112, 200), Vector2(124, 160),
-	Vector2(84, 128), Vector2(56, 92), Vector2(84, 54), Vector2(140, 40),
-]
-
-## Street circuit: right-angle corners around city blocks (clockwise,
-## starting in the middle of the top street).
-const CALLEJERO_CORNERS := [
-	Vector2(290, 36), Vector2(290, 76), Vector2(448, 76), Vector2(448, 160),
-	Vector2(376, 160), Vector2(376, 236), Vector2(230, 236), Vector2(230, 170),
-	Vector2(40, 170), Vector2(40, 36),
-]
-
-## Twisty walled circuit. Starts on the bottom straight heading left.
-const SERPENTINA_CONTROL := [
-	Vector2(236, 242), Vector2(150, 240), Vector2(108, 222),
-	Vector2(84, 186), Vector2(48, 150), Vector2(38, 96), Vector2(58, 52),
-	Vector2(110, 32), Vector2(190, 30), Vector2(236, 36), Vector2(258, 60),
-	Vector2(238, 94), Vector2(190, 100), Vector2(140, 108), Vector2(118, 140),
-	Vector2(136, 174), Vector2(190, 184), Vector2(240, 170), Vector2(274, 136),
-	Vector2(306, 100), Vector2(330, 58), Vector2(370, 34), Vector2(424, 38),
-	Vector2(452, 76), Vector2(446, 124), Vector2(420, 162), Vector2(384, 190),
-	Vector2(370, 226), Vector2(336, 243), Vector2(290, 243),
-]
-
-## Infield barriers (drawn by the player on a screenshot of the track).
-const SERPENTINA_WALLS := [
-	[Vector2(200, 67), Vector2(180, 67), Vector2(150, 67), Vector2(125, 70),
-	Vector2(100, 82), Vector2(82, 98), Vector2(72, 118), Vector2(73, 140),
-	Vector2(85, 162), Vector2(100, 180), Vector2(125, 198), Vector2(155, 213),
-	Vector2(190, 220), Vector2(225, 214), Vector2(255, 207), Vector2(280, 193),
-	Vector2(300, 177), Vector2(320, 160), Vector2(345, 138), Vector2(370, 113),
-	Vector2(392, 88)],
-	[Vector2(167, 148), Vector2(190, 142), Vector2(213, 135), Vector2(232, 125),
-	Vector2(252, 108), Vector2(272, 92), Vector2(290, 72), Vector2(305, 50),
-	Vector2(320, 30), Vector2(340, 2)],
-]
-## Walls placed exactly as drawn (not centred): closes the gap between the
-## top of the short wall and the top edge of the screen.
-const SERPENTINA_FIXED_WALLS := [
-	[Vector2(302, 44), Vector2(306, 33), Vector2(310, 22), Vector2(314, 11), Vector2(317, 4)],
-]
-
-## Grand Prix control points, clockwise on screen. The first point sits on the
-## main straight; the start/finish line is at s = 0.
-const GP_CONTROL := [
-	Vector2(196, 40), Vector2(290, 40), Vector2(372, 42), Vector2(430, 62),
-	Vector2(448, 104), Vector2(420, 140), Vector2(362, 146), Vector2(318, 162),
-	Vector2(326, 204), Vector2(366, 222), Vector2(348, 248), Vector2(268, 250),
-	Vector2(200, 238), Vector2(166, 204), Vector2(122, 176), Vector2(64, 166),
-	Vector2(36, 128), Vector2(46, 72), Vector2(96, 44),
-]
-
-var id := "gp"
-## "grass" (countryside circuit) or "city" (street circuit).
-var style := "grass"
-var title := "GRAN PREMIO"
+var id := "indy"
+var title := "INDIANAPOLIS"
 var half_width := HALF_WIDTH
-## Barrier walls in the infield (polylines). Cars bounce off them, so they
-## cannot cut across from one part of the circuit to another.
-var walls: Array = []
-## Wall segments as [a, b] pairs (for collisions).
-var wall_segments: Array = []
 ## Corners sharper than this get red/white kerbs.
-var kerb_curv := 0.012
-## Decoration: {"stand": Rect2, "pit": Rect2, "trees": Array[Vector2]}
+var kerb_curv := 0.005
+## Decoration: {"stands": Array[Rect2], "pit": Rect2, "trees": Array[Vector2],
+## "greens": Array[Rect2]}
 var scenery: Dictionary = {}
 var control: Array = []
-var wall_lines: Array = []
-## Street circuits: barriers along both road edges at this distance from the
-## centerline (0 = no edge barriers).
-var edge_wall := 0.0
-## Extra cornering speed for computer drivers on this circuit (tight
-## right-angle corners are faster than the plain grip estimate suggests).
-var cpu_corner := 1.0
-var fixed_wall_lines: Array = []
 var pts := PackedVector2Array()
 var tangents := PackedVector2Array()
 var normals := PackedVector2Array()
@@ -144,247 +44,79 @@ var step := TARGET_STEP
 var length := 0.0
 
 
-func _init(p_id: String = "gp") -> void:
-	id = p_id if p_id in IDS else "gp"
+func _init(p_id: String = "indy") -> void:
+	id = p_id if p_id in IDS else "indy"
 	title = TITLES[id]
-	if id == "ovalo":
-		half_width = 20.0
-		kerb_curv = 0.009
-		control = _oval_control(Vector2(150, 135), Vector2(330, 135), 85.0)
-		scenery = {
-			"stand": Rect2(196, 92, 88, 14), "pit": Rect2(196, 160, 88, 10),
-			"trees": [Vector2(160, 118), Vector2(320, 118), Vector2(160, 158), Vector2(320, 158), Vector2(24, 30), Vector2(456, 30), Vector2(24, 230), Vector2(456, 240), Vector2(240, 258)],
-		}
-	elif id == "campo":
-		half_width = 21.0
-		kerb_curv = 0.016
-		control = CAMPO_CONTROL
-		scenery = {
-			"stand": Rect2(200, 92, 90, 14), "pit": Rect2(200, 140, 70, 10),
-			"trees": [Vector2(130, 110), Vector2(150, 150), Vector2(330, 110), Vector2(360, 130), Vector2(300, 150), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
-		}
-	elif id == "hockenheim":
-		half_width = 15.0
-		kerb_curv = 0.016
-		control = HOCKENHEIM_CONTROL
-		scenery = {"stand": Rect2(68, 98, 10, 44), "pit": Rect2(240, 206, 70, 8), "trees": []}
-	elif id == "monza":
-		half_width = 15.0
-		kerb_curv = 0.016
-		control = MONZA_CONTROL
-		scenery = {"stand": Rect2(170, 230, 130, 12), "pit": Rect2(290, 156, 80, 10), "trees": []}
-	elif id == "bosque":
-		half_width = 17.0
-		kerb_curv = 0.016
-		control = BOSQUE_CONTROL
-		var forest: Array = []
-		for p in [Vector2(250, 90), Vector2(280, 110), Vector2(310, 92), Vector2(340, 112), Vector2(230, 120), Vector2(300, 140), Vector2(260, 160), Vector2(330, 150), Vector2(370, 100), Vector2(22, 180), Vector2(40, 220), Vector2(70, 196), Vector2(110, 236), Vector2(140, 210), Vector2(456, 170), Vector2(440, 220), Vector2(460, 250), Vector2(400, 236), Vector2(30, 24), Vector2(456, 26), Vector2(110, 100), Vector2(150, 110)]:
-			forest.append(p)
-		scenery = {"stand": Rect2(180, 62, 90, 12), "pit": Rect2(0, 0, 0, 0), "trees": forest}
-	elif id == "pradera":
-		half_width = 17.0
-		kerb_curv = 0.016
-		control = PRADERA_CONTROL
-		scenery = {
-			"stand": Rect2(200, 82, 90, 14), "pit": Rect2(200, 124, 70, 10),
-			"trees": [Vector2(150, 100), Vector2(170, 150), Vector2(330, 100), Vector2(360, 120), Vector2(300, 140), Vector2(24, 30), Vector2(460, 30), Vector2(24, 240), Vector2(460, 240), Vector2(330, 245), Vector2(250, 260)],
-		}
-	elif id == "callejero":
-		style = "city"
-		edge_wall = 15.0 + 2.0
-		cpu_corner = 1.8
-		half_width = 15.0
-		kerb_curv = 0.02
-		control = _rounded_path(Vector2(230, 36), CALLEJERO_CORNERS, 20.0)
-		scenery = {"stand": Rect2(0, 0, 0, 0), "pit": Rect2(0, 0, 0, 0), "trees": []}
-	elif id == "serpentina":
-		half_width = 13.0
-		kerb_curv = 0.014
-		control = SERPENTINA_CONTROL
-		wall_lines = SERPENTINA_WALLS
-		fixed_wall_lines = SERPENTINA_FIXED_WALLS
-		scenery = {
-			"stand": Rect2(284, 205, 60, 9), "pit": Rect2(0, 0, 0, 0),
-			"trees": [Vector2(90, 80), Vector2(110, 64), Vector2(200, 135), Vector2(220, 140), Vector2(330, 130), Vector2(360, 100), Vector2(400, 92), Vector2(20, 240), Vector2(460, 250)],
-		}
-	else:
-		control = GP_CONTROL
-		scenery = {
-			"stand": Rect2(212, 64, 96, 14), "pit": Rect2(110, 64, 60, 10),
-			"trees": [Vector2(80, 110), Vector2(96, 128), Vector2(260, 120), Vector2(280, 140), Vector2(240, 205), Vector2(395, 105), Vector2(140, 236), Vector2(420, 190), Vector2(24, 230), Vector2(460, 30)],
-		}
+	control = _rounded_rect_control(INDY_CENTRE, INDY_STRAIGHT, INDY_CHUTE, INDY_RADIUS)
 	_build()
-	_build_walls()
-	if id == "bosque" or id == "monza" or id == "hockenheim":
-		_plant_forest()
+	_build_scenery()
 
 
-## Fills the grass with trees (deterministic), keeping clear of the road,
-## the grandstand and the touch buttons.
-func _plant_forest() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 77
-	var trees: Array = []
-	var stand: Rect2 = scenery.get("stand", Rect2())
-	for y in range(20, 266, 13):
-		for x in range(8, 474, 13):
-			var p := Vector2(x + rng.randi_range(-4, 4), y + rng.randi_range(-4, 4))
-			if rng.randf() < 0.35:
-				continue
-			if absf(locate(p).y) < half_width + KERB_WIDTH + 8.0:
-				continue
-			if stand.grow(8).has_point(p):
-				continue
-			if (p.x < 86 or p.x > 394) and p.y > 200:
-				continue
-			trees.append(p)
-	scenery["trees"] = trees
-
-
-## Builds the infield walls from rough hand-drawn lines: every point is moved
-## to the middle of the grass between the two nearest parts of the circuit,
-## then the line is smoothed, cut open wherever it would touch the road and
-## simplified to ~8 px segments.
-func _build_walls() -> void:
-	walls.clear()
-	wall_segments.clear()
-	var clear_dist := half_width + KERB_WIDTH + 3.0
-	var all_lines: Array = []
-	for line in wall_lines:
-		all_lines.append([line, true])
-	for line in fixed_wall_lines:
-		all_lines.append([line, false])
-	for entry in all_lines:
-		var line: Array = entry[0]
-		var centre: bool = entry[1]
-		# 1. Densify the drawn line (2 px steps) and centre every point.
-		var dense := PackedVector2Array()
-		for k in range(line.size() - 1):
-			var a: Vector2 = line[k]
-			var b: Vector2 = line[k + 1]
-			var steps := maxi(1, int(ceil(a.distance_to(b) / 2.0)))
-			for t in range(steps + (1 if k == line.size() - 2 else 0)):
-				var q := a.lerp(b, float(t) / steps)
-				dense.append(_centre_between_sections(q) if centre else q)
-		# 2. Smooth out the jitter from switching between nearest samples.
-		var smooth := PackedVector2Array()
-		smooth.resize(dense.size())
-		for i in range(dense.size()):
-			var acc := Vector2.ZERO
-			var cnt := 0
-			var r := 6 if centre else 0
-			for j in range(maxi(0, i - r), mini(dense.size(), i + r + 1)):
-				acc += dense[j]
-				cnt += 1
-			smooth[i] = acc / cnt
-		# 3. Cut the line open wherever it touches the road.
-		var piece := PackedVector2Array()
-		for p in smooth:
-			if absf(locate(p).y) < clear_dist:
-				if piece.size() >= 2:
-					walls.append(piece)
-				piece = PackedVector2Array()
-			else:
-				piece.append(p)
-		if piece.size() >= 2:
-			walls.append(piece)
-	# 4. Simplify the 2 px samples to ~8 px segments.
-	for i in range(walls.size()):
-		var w: PackedVector2Array = walls[i]
-		var simple := PackedVector2Array([w[0]])
-		for k in range(4, w.size() - 1, 4):
-			simple.append(w[k])
-		simple.append(w[w.size() - 1])
-		walls[i] = simple
-	for w in walls:
-		for k in range(w.size() - 1):
-			wall_segments.append([w[k], w[k + 1]])
-
-
-## Midpoint between the nearest part of the circuit and the nearest part on the
-## opposite side of p that is far away along the lap. Points with no circuit
-## on the other side (open grass) are left where they are.
-func _centre_between_sections(p: Vector2) -> Vector2:
-	var i1 := 0
-	var d1 := INF
-	for i in range(n):
-		var d := p.distance_squared_to(pts[i])
-		if d < d1:
-			d1 = d
-			i1 = i
-	var q1 := pts[i1]
-	var min_gap := int(100.0 / step)
-	var i2 := -1
-	var d2 := INF
-	for i in range(n):
-		var gap := absi(i - i1)
-		if mini(gap, n - gap) < min_gap:
-			continue
-		if (pts[i] - p).dot(q1 - p) >= 0.0:
-			continue
-		var d := p.distance_squared_to(pts[i])
-		if d < d2:
-			d2 = d
-			i2 = i
-	if i2 < 0 or d2 > 130.0 * 130.0:
-		return p
-	return (q1 + pts[i2]) * 0.5
-
-
-## Closed path through right-angle corners, each rounded with radius r.
-## Starts at start (on the segment from the last corner to the first).
-static func _rounded_path(start: Vector2, corners: Array, r: float) -> Array:
-	var out: Array = [start]
-	var cn := corners.size()
-	var prev := start
-	for i in range(cn):
-		var c: Vector2 = corners[i]
-		var nxt: Vector2 = corners[(i + 1) % cn] if i < cn - 1 else corners[0]
-		if i == cn - 1:
-			nxt = start
-		var a := c + (prev - c).normalized() * r
-		var b := c + (nxt - c).normalized() * r
-		# Straight part up to the corner.
-		var d := prev.distance_to(a)
-		var steps := int(d / 30.0)
-		for k in range(1, steps + 1):
-			out.append(prev.lerp(a, float(k) / (steps + 1)))
-		# Rounded corner (quadratic Bezier a -> c -> b).
-		for k in range(5):
-			var t := k / 4.0
-			out.append(a.lerp(c, t).lerp(c.lerp(b, t), t))
-		prev = b
-	var d2 := prev.distance_to(start)
-	var steps2 := int(d2 / 30.0)
-	for k in range(1, steps2 + 1):
-		out.append(prev.lerp(start, float(k) / (steps2 + 1)))
-	return out
-
-
-## Stadium-shaped oval: two straights joined by half circles, clockwise,
-## starting in the middle of the top straight.
-static func _oval_control(left_c: Vector2, right_c: Vector2, r: float) -> Array:
+## Closed counter-clockwise path around a rectangle with rounded corners,
+## sampled every ~25 px, starting in the middle of the bottom straight.
+static func _rounded_rect_control(c: Vector2, straight: float, chute: float, r: float) -> Array:
 	var out: Array = []
-	var mid_x := (left_c.x + right_c.x) / 2.0
-	var x := mid_x
-	while x < right_c.x:
-		out.append(Vector2(x, right_c.y - r))
-		x += 30.0
-	for k in range(9):
-		var a := -PI / 2.0 + PI * k / 9.0
-		out.append(right_c + Vector2(cos(a), sin(a)) * r)
-	x = right_c.x
-	while x > left_c.x:
-		out.append(Vector2(x, left_c.y + r))
-		x -= 30.0
-	for k in range(9):
-		var a := PI / 2.0 + PI * k / 9.0
-		out.append(left_c + Vector2(cos(a), sin(a)) * r)
-	x = left_c.x
-	while x < mid_x - 1.0:
-		out.append(Vector2(x, left_c.y - r))
-		x += 30.0
+	var hx := straight / 2.0
+	var hy := chute / 2.0
+	# Each section: [start, end] for straights, [corner centre, angle from] for turns.
+	var corners := [Vector2(c.x + hx, c.y + hy), Vector2(c.x + hx, c.y - hy), Vector2(c.x - hx, c.y - hy), Vector2(c.x - hx, c.y + hy)]
+	var starts := [PI / 2.0, 0.0, -PI / 2.0, PI]
+	var lines := [
+		[Vector2(c.x, c.y + hy + r), Vector2(c.x + hx, c.y + hy + r)],
+		[Vector2(c.x + hx + r, c.y + hy), Vector2(c.x + hx + r, c.y - hy)],
+		[Vector2(c.x + hx, c.y - hy - r), Vector2(c.x - hx, c.y - hy - r)],
+		[Vector2(c.x - hx - r, c.y - hy), Vector2(c.x - hx - r, c.y + hy)],
+	]
+	for i in range(4):
+		var a: Vector2 = lines[i][0]
+		var b: Vector2 = lines[i][1]
+		var steps := maxi(1, int(round(a.distance_to(b) / 25.0)))
+		for k in range(steps):
+			out.append(a.lerp(b, float(k) / steps))
+		var arc_steps := maxi(2, int(round(r * PI / 2.0 / 25.0)))
+		for k in range(arc_steps):
+			var ang: float = starts[i] - PI / 2.0 * k / arc_steps
+			out.append(corners[i] + Vector2(cos(ang), sin(ang)) * r)
+	# Back to the start on the bottom straight.
+	var last: Vector2 = lines[0][0]
+	var from := Vector2(c.x - hx, c.y + hy + r)
+	var steps2 := maxi(1, int(round(from.distance_to(last) / 25.0)))
+	for k in range(steps2):
+		out.append(from.lerp(last, float(k) / steps2))
 	return out
+
+
+## Grandstands along the outside of the front straight and the back straight,
+## pits and pagoda on the inside of the front straight, golf course and trees
+## in the infield.
+func _build_scenery() -> void:
+	var outer := half_width + KERB_WIDTH + 6.0
+	var bottom := INDY_CENTRE.y + INDY_CHUTE / 2.0 + INDY_RADIUS
+	var top := INDY_CENTRE.y - INDY_CHUTE / 2.0 - INDY_RADIUS
+	var stands: Array = [
+		Rect2(250, bottom + outer, 460, WORLD.y - 8.0 - bottom - outer),
+		Rect2(330, 8, 300, top - outer - 8.0),
+	]
+	var pit := Rect2(300, bottom - outer - 14.0, 280, 12)
+	var greens: Array = [Rect2(360, 200, 70, 40), Rect2(560, 300, 80, 36), Rect2(230, 250, 60, 50)]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1911
+	var trees: Array = []
+	for y in range(12, int(WORLD.y) - 6, 15):
+		for x in range(10, int(WORLD.x) - 6, 15):
+			var p := Vector2(x + rng.randi_range(-5, 5), y + rng.randi_range(-5, 5))
+			if rng.randf() < 0.55:
+				continue
+			if absf(locate(p).y) < half_width + KERB_WIDTH + 10.0:
+				continue
+			# Pits plus the pagoda above them.
+			var blocked := Rect2(pit.position - Vector2(10, 34), pit.size + Vector2(20, 44)).has_point(p)
+			for r in stands + greens:
+				if (r as Rect2).grow(8).has_point(p):
+					blocked = true
+			if not blocked:
+				trees.append(p)
+	scenery = {"stands": stands, "pit": pit, "trees": trees, "greens": greens}
 
 
 func _build() -> void:

@@ -1,11 +1,12 @@
 # Mini Racing 🏎️
 
 Juego de carreras retro de autitos tipo Fórmula 1 para Android, inspirado en los
-juegos de Commodore 64. Vista desde arriba, toda la pista en pantalla, 6 autos,
-5 vueltas. Hecho con **Godot 4.3** (renderer GL Compatibility).
+juegos de Commodore 64. Vista desde arriba con la cámara siguiendo a tu auto,
+6 autos, 3 vueltas a un óvalo tipo Indianápolis. Hecho con **Godot 4.3**
+(renderer GL Compatibility).
 
 ![Menú](docs/menu.png) ![Carrera](docs/race.png)
-![Largada](docs/countdown.png) ![Clasificación online](docs/online4.png)
+![Largada](docs/countdown.png)
 
 ## Descargar el APK
 
@@ -19,35 +20,21 @@ Cada push compila el APK automáticamente con GitHub Actions:
    orígenes desconocidos"). Es un APK *debug* firmado con una clave de
    depuración: sirve para probar, no para publicar en Play Store.
 
-## Pistas
+## La pista y la cámara
 
-En el menú principal, el botón **< PISTA: ... >** cambia entre:
+Hay una sola pista: **INDIANAPOLIS**, un óvalo con las proporciones del real
+(dos rectas largas, dos rectas cortas y cuatro curvas iguales de 90°), que se
+corre en sentido antihorario, como allá. Tiene tribunas afuera de las rectas,
+boxes y la torre de cronometraje en la recta principal, una franja de ladrillos
+en la línea de llegada y una cancha de golf adentro. Todo está rodeado por un
+alambrado que hace de pared.
 
-- **GRAN PREMIO**: circuito con curvas rápidas, horquillas y chicana.
-- **OVALO**: óvalo rápido y más ancho, para ir a fondo y pelear rueda a rueda.
-- **SERPENTINA**: circuito sinuoso y angosto, con **paredones** en el pasto
-  entre los tramos de pista (no se puede cortar camino de un tramo a otro: el
-  auto rebota contra la pared).
-
-- **CALLEJERO**: circuito urbano entre manzanas de edificios, con una chicana
-  junto al puerto y **barreras** a ambos lados de la calle (si te pasás en una
-  esquina, rebotás contra la barrera).
-
-- **CAMPO** (fácil): la más fácil, calle muy ancha y curvas largas y suaves.
-- **PRADERA** (fácil): calle ancha con una S suave a la izquierda.
-- **BOSQUE** (fácil, pero no tanto): triángulo redondeado entre árboles, con una S.
-
-![Óvalo](docs/oval.png) ![Serpentina](docs/serpentina.png) ![Callejero](docs/callejero.png)
-- **MONZA**: mini Monza sin chicanas (Curva Grande, Lesmo, Ascari y una
-  Parabólica amplia), dentro del parque.
-- **HOCKENHEIM**: inspirado en el viejo Hockenheim, rectas largas por el bosque
-  y la largada en el lado izquierdo.
-
-![Campo](docs/campo.png) ![Pradera](docs/pradera.png) ![Bosque](docs/bosque.png)
-![Monza](docs/monza.png) ![Hockenheim](docs/hockenheim.png)
-
-La pista elegida se guarda en el celular. En online, la elige quien **crea** la
-partida y el servidor se la indica al que se une.
+La pista es el **doble de grande que la pantalla**, así que la cámara sigue a
+tu auto y **gira con él**: tu auto siempre apunta hacia arriba y ves la curva
+que viene. La cámara sigue hacia dónde avanza el auto (no hacia dónde apunta
+la trompa), y gira suavemente para que un derrape o un choque no sacudan la
+pantalla. Arriba a la derecha hay un **minimapa** con todo el óvalo y un punto
+por auto (el tuyo titila).
 
 ## Nivel de dificultad
 
@@ -62,9 +49,10 @@ El nivel se guarda en el celular. En online lo elige quien crea la partida.
 ## Cómo se juega
 
 - Los autos **aceleran solos**. Vos solo doblás.
-- Los dos botones táctiles están **juntos abajo a la derecha**: izquierda y
-  derecha (en la PC: flechas o A/D). Toda la franja derecha de la pantalla
-  responde, para que sea cómodo de usar con un pulgar.
+- Un botón táctil **abajo a la izquierda** (doblar a la izquierda) y otro
+  **abajo a la derecha** (doblar a la derecha); en la PC: flechas o A/D. Toda
+  la mitad izquierda o derecha de la pantalla responde, no hace falta acertarle
+  justo al botón.
 - Al soltar, el auto sigue derecho.
 - Si doblás a fondo una curva cerrada a toda velocidad, el auto **derrapa**,
   deja marcas de goma y pierde velocidad.
@@ -86,7 +74,7 @@ El nivel se guarda en el celular. En online lo elige quien crea la partida.
 | CALMO   | Equilibrado |
 
 En **CARRERA VS CPU** jugás vos + 4 CPU + un sexto auto ("BOT") que ocupa el
-lugar del segundo jugador humano.
+lugar del segundo jugador humano. La carrera es a **3 vueltas**.
 
 ## Multijugador online
 
@@ -159,9 +147,9 @@ Dos formas (los dos jugadores tienen que usar el mismo servidor):
 ```
 scenes/        escenas (menu, race, lobby, settings, server)
 scripts/
-  track.gd       la pista (spline, ancho, curvatura, grilla de largada)
+  track.gd       la pista (óvalo de 960x540, spline, curvatura, grilla de largada)
   race_sim.gd    simulación compartida: física arcade, IA, choques, vueltas
-  race.gd        pantalla de carrera: render, HUD, controles, predicción online
+  race.gd        pantalla de carrera: cámara, HUD, minimapa, controles, predicción online
   server.gd      servidor autoritativo con salas
   net_client.gd  cliente WebSocket
   menu.gd, lobby.gd, settings.gd   pantallas

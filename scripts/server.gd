@@ -28,7 +28,7 @@ class Room:
 	var state := "waiting"   # waiting, racing, results
 	var tick := 0
 	var laps := RaceSim.DEFAULT_LAPS
-	var track_id := "gp"
+	var track_id := "indy"
 	var level := RaceSim.DEFAULT_LEVEL
 	var idle_time := 0.0
 	var ended_sent := false
@@ -136,8 +136,8 @@ func _handle(p: Peer, msg: Dictionary) -> void:
 				_leave_room(p)
 			var room := Room.new()
 			room.code = _new_code()
-			var tid := str(msg.get("track", "gp"))
-			room.track_id = tid if tracks.has(tid) else "gp"
+			var tid := str(msg.get("track", "indy"))
+			room.track_id = tid if tracks.has(tid) else Track.IDS[0]
 			room.level = clampi(int(msg.get("level", RaceSim.DEFAULT_LEVEL)), 0, RaceSim.LEVEL_NAMES.size() - 1)
 			room.laps = clampi(int(msg.get("laps", RaceSim.DEFAULT_LAPS)), 1, RaceSim.DEFAULT_LAPS)
 			room.players[0] = p.id
