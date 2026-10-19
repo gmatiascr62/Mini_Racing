@@ -84,7 +84,11 @@ func test_track() -> void:
 		for q in [rect.position, rect.end, rect.get_center(), Vector2(rect.end.x, rect.position.y), Vector2(rect.position.x, rect.end.y)]:
 			if absf(track.locate(q).y) < track.half_width + Track.KERB_WIDTH:
 				clear = false
-	check(clear, "trees, grandstands and pits stay off the road")
+	for l in track.scenery.get("lakes", []):
+		for q in l:
+			if absf(track.locate(q).y) < track.half_width + Track.KERB_WIDTH + 10.0:
+				clear = false
+	check(clear, "trees, grandstands, pits and lakes stay off the road")
 
 
 func test_offline_race(human_bots: bool) -> void:

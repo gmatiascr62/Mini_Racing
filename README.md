@@ -2,11 +2,11 @@
 
 Juego de carreras retro de autitos tipo Fórmula 1 para Android, inspirado en los
 juegos de Commodore 64. Vista desde arriba con la cámara siguiendo a tu auto,
-6 autos, 3 vueltas, en Indianápolis, Monza o el viejo Hockenheim. Hecho con **Godot 4.3**
+6 autos, 3 vueltas, en Indianápolis, Monza, el viejo Hockenheim o Interlagos. Hecho con **Godot 4.3**
 (renderer GL Compatibility).
 
 ![Menú](docs/menu.png) ![Carrera](docs/race.png)
-![Largada](docs/countdown.png) ![Monza](docs/monza.png) ![Hockenheim](docs/hockenheim.png)
+![Largada](docs/countdown.png) ![Monza](docs/monza.png) ![Hockenheim](docs/hockenheim.png) ![Interlagos](docs/interlagos.png)
 
 ## Descargar el APK
 
@@ -38,6 +38,13 @@ En el menú, el botón **< PISTA: ... >** cambia entre:
   Bremsschikane 2 y el estadio (Agip, Sachs y Südkurve) con las tribunas del
   Motodrom. Es la más larga: mucho más grande que las otras y metida en un
   bosque tupido (una vuelta dura unos 37 segundos).
+- **INTERLAGOS**: hecho con el trazado real (las coordenadas GPS del circuito
+  de São Paulo), en sentido antihorario: recta de boxes, S do Senna, Curva do
+  Sol, Reta Oposta, Descida do Lago, Ferradura, Laranjinha, Pinheirinho, Bico
+  de Pato, Mergulho, Junção y Subida dos Boxes. Pianos **verdes y amarillos**,
+  tribunas donde están las reales (recta principal, S do Senna, Curva do Sol,
+  Reta Oposta y Junção), boxes del lado de adentro de la recta y el **lago**
+  junto a la Descida do Lago.
 
 La pista elegida se guarda en el celular. En online la elige quien **crea** la
 partida. Las dos están rodeadas por un alambrado que hace de pared.

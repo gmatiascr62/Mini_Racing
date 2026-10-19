@@ -52,6 +52,7 @@ func _draw() -> void:
 		var p := Vector2(rng.randi_range(0, int(world.x) - 1), rng.randi_range(0, int(world.y) - 1))
 		draw_rect(Rect2(p, Vector2(1, 1)), Pal.LIGHT_GREEN)
 	_draw_greens()
+	_draw_lakes()
 	# Run-off shadow around the road.
 	for i in range(n):
 		var j := (i + 1) % n
@@ -61,7 +62,7 @@ func _draw() -> void:
 		var j := (i + 1) % n
 		var col := Pal.LIGHT_GREY
 		if absf(track.curv[i]) > track.kerb_curv:
-			col = Pal.KERB_RED if (i / 2) % 2 == 0 else Pal.WHITE
+			col = track.kerb_colors[0] if (i / 2) % 2 == 0 else track.kerb_colors[1]
 		_quad(track.pts[i], track.pts[j], track.normals[i], track.normals[j], -hw - kw, hw + kw, col)
 	# Asphalt.
 	for i in range(n):
@@ -97,6 +98,27 @@ func _draw() -> void:
 	# Fence around the world.
 	draw_rect(Rect2(Vector2(1, 1), world - Vector2(2, 2)), Pal.BLACK, false, 3.0)
 	draw_rect(Rect2(Vector2(1, 1), world - Vector2(2, 2)), Pal.LIGHT_GREY, false, 1.0)
+
+
+## Water with a muddy shore and a few ripples.
+func _draw_lakes() -> void:
+	for l in track.scenery.get("lakes", []):
+		var lake: PackedVector2Array = l
+		var c := Vector2.ZERO
+		for p in lake:
+			c += p
+		c /= lake.size()
+		var shore := PackedVector2Array()
+		for p in lake:
+			shore.append(c + (p - c) * 1.08)
+		draw_colored_polygon(shore, Pal.SAND.darkened(0.25))
+		draw_colored_polygon(lake, Color("#3a5fb0"))
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 5
+		for k in range(40):
+			var q := c + Vector2(rng.randf_range(-60, 60), rng.randf_range(-26, 26))
+			if Geometry2D.is_point_in_polygon(q, lake):
+				draw_rect(Rect2(q.floor(), Vector2(4, 1)), Color("#5f86d6"))
 
 
 ## Golf course in the infield.
@@ -136,12 +158,14 @@ func _draw_scenery() -> void:
 		draw_rect(pit.grow(-1), Pal.LIGHT_GREY)
 		for x in range(int(pit.position.x) + 4, int(pit.end.x) - 4, 8):
 			draw_rect(Rect2(x, pit.position.y + 4, 4, pit.size.y - 5), Pal.DARK_GREY)
-		var px := track.pts[0].x
+		var px := clampf(track.pts[0].x, pit.position.x + 9.0, pit.end.x - 9.0)
 		var pagoda := Rect2(px - 9, pit.position.y - 22, 18, 20)
-		draw_rect(pagoda.grow(1), Pal.BLACK)
-		draw_rect(pagoda, Pal.WHITE)
-		for k in range(3):
-			draw_rect(Rect2(pagoda.position.x - 2, pagoda.position.y + k * 7, pagoda.size.x + 4, 2), Pal.BLACK)
+		# Only where there is room between the pits and the road.
+		if absf(track.locate(pagoda.position).y) > track.half_width + Track.KERB_WIDTH + 2.0:
+			draw_rect(pagoda.grow(1), Pal.BLACK)
+			draw_rect(pagoda, Pal.WHITE)
+			for k in range(3):
+				draw_rect(Rect2(pagoda.position.x - 2, pagoda.position.y + k * 7, pagoda.size.x + 4, 2), Pal.BLACK)
 	for p in track.scenery.get("trees", []):
 		_tree(p)
 
