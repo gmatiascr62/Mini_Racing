@@ -10,7 +10,7 @@ var _testing := false
 
 
 func _ready() -> void:
-	add_child(TrackView.new(Game.track))
+	add_child(TrackView.overview(Game.track))
 	_layer = Node2D.new()
 	_layer.draw.connect(_draw_layer)
 	add_child(_layer)

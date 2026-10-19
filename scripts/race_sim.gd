@@ -5,7 +5,7 @@ extends RefCounted
 
 const TICK := 1.0 / 60.0
 const CAR_COUNT := 6
-const DEFAULT_LAPS := 5
+const DEFAULT_LAPS := 3
 
 # --- Arcade physics (pixels, seconds) ---
 const VMAX := 100.0
@@ -27,7 +27,6 @@ const CAR_RADIUS := 3.6
 const CAR_OFFSET := 3.2
 const RESTITUTION := 0.45
 const SPIN := 0.005
-const SCREEN := Vector2(480, 270)
 const BOUNDS_MARGIN := 6.0
 
 const STATE_COUNTDOWN := 0
@@ -35,7 +34,7 @@ const STATE_RACING := 1
 const STATE_FINISHED := 2
 
 const COUNTDOWN_TIME := 3.0
-## After every human finished, CPUs get this long to cross the line.
+## After every human finished, CPUs get at least this long to cross the line.
 const FINISH_GRACE := 15.0
 const MAX_RACE_TIME := 600.0
 
@@ -270,71 +269,31 @@ func step_car(c: Car, dt: float) -> void:
 			fwd = minf(fwd + corr * SLIDE_KEEP, vmax)
 	c.vel = dir * fwd + right * lat
 	c.pos += c.vel * dt
-	# Screen edges act as walls.
+	# The fence around the world acts as a wall.
 	var hit := false
 	if c.pos.x < BOUNDS_MARGIN:
 		c.pos.x = BOUNDS_MARGIN
 		if c.vel.x < 0.0:
 			c.vel.x *= -0.4
 			hit = true
-	elif c.pos.x > SCREEN.x - BOUNDS_MARGIN:
-		c.pos.x = SCREEN.x - BOUNDS_MARGIN
+	elif c.pos.x > track.world.x - BOUNDS_MARGIN:
+		c.pos.x = track.world.x - BOUNDS_MARGIN
 		if c.vel.x > 0.0:
 			c.vel.x *= -0.4
 			hit = true
-	if c.pos.y < BOUNDS_MARGIN + 10.0:
-		c.pos.y = BOUNDS_MARGIN + 10.0
+	if c.pos.y < BOUNDS_MARGIN:
+		c.pos.y = BOUNDS_MARGIN
 		if c.vel.y < 0.0:
 			c.vel.y *= -0.4
 			hit = true
-	elif c.pos.y > SCREEN.y - BOUNDS_MARGIN:
-		c.pos.y = SCREEN.y - BOUNDS_MARGIN
+	elif c.pos.y > track.world.y - BOUNDS_MARGIN:
+		c.pos.y = track.world.y - BOUNDS_MARGIN
 		if c.vel.y > 0.0:
 			c.vel.y *= -0.4
 			hit = true
 	if hit:
 		c.vel *= 0.7
 		events.append({"type": "crash", "pos": c.pos, "power": 30.0})
-	# Street circuits: barriers along both edges of the road.
-	if track.edge_wall > 0.0:
-		var wl := track.locate(c.pos, c.track_idx)
-		var limit := track.edge_wall - CAR_RADIUS
-		if absf(wl.y) > limit:
-			var nrm := track.normal_at(wl.x) * signf(wl.y)
-			c.pos -= nrm * (absf(wl.y) - limit)
-			var vn := c.vel.dot(nrm)
-			if vn > 0.0:
-				c.vel -= nrm * vn * 1.4
-				c.vel *= 0.92
-				if vn > 15.0:
-					events.append({"type": "crash", "pos": c.pos + nrm * CAR_RADIUS, "power": vn})
-	# Infield barrier walls: bounce off them (no cutting across).
-	if not track.wall_segments.is_empty():
-		_collide_walls(c)
-
-
-const WALL_RADIUS := CAR_RADIUS + 1.5
-
-
-func _collide_walls(c: Car) -> void:
-	var dir := Vector2.from_angle(c.heading) * CAR_OFFSET
-	for seg in track.wall_segments:
-		var a: Vector2 = seg[0]
-		var b: Vector2 = seg[1]
-		for off in [dir, -dir]:
-			var p: Vector2 = c.pos + off
-			var q := Geometry2D.get_closest_point_to_segment(p, a, b)
-			var d := p.distance_to(q)
-			if d >= WALL_RADIUS:
-				continue
-			var nrm := (p - q) / d if d > 0.001 else (c.pos - (a + b) * 0.5).normalized()
-			c.pos += nrm * (WALL_RADIUS - d)
-			var vn := c.vel.dot(nrm)
-			if vn < 0.0:
-				c.vel -= nrm * vn * 1.4
-				c.vel *= 0.92
-				if -vn > 15.0:
-					events.append({"type": "crash", "pos": q, "power": -vn})
 
 
 func ai_drive(c: Car, dt: float) -> void:
@@ -401,7 +360,7 @@ func ai_drive(c: Car, dt: float) -> void:
 	c.steer = clampf(diff * float(p["gain"]), -1.0, 1.0)
 	# Speed: lift off before corners that are too fast for us.
 	var horizon := fwd * 0.75 + 22.0
-	var vt := track.min_safe_speed(c.s, c.s + horizon) * float(p["corner"]) * c.corner_skill * track.cpu_corner
+	var vt := track.min_safe_speed(c.s, c.s + horizon) * float(p["corner"]) * c.corner_skill
 	if absf(diff) > 0.9:
 		vt = minf(vt, 45.0)
 	c.throttle = 1.0 if fwd < minf(vt, c.vmax) else 0.0
@@ -532,10 +491,16 @@ func _check_race_end() -> void:
 				humans_done = false
 	if all_done or time >= MAX_RACE_TIME:
 		state = STATE_FINISHED
-	elif humans_done and last_human_finish >= 0.0 and time - last_human_finish >= FINISH_GRACE:
+	elif humans_done and last_human_finish >= 0.0 and time - last_human_finish >= finish_grace():
 		state = STATE_FINISHED
 	if state == STATE_FINISHED:
 		events.append({"type": "race_over"})
+
+
+## How long CPUs get to cross the line after every human finished: at least
+## FINISH_GRACE, more on long circuits (60% of a flat-out lap).
+func finish_grace() -> float:
+	return maxf(FINISH_GRACE, track.length / VMAX * 0.6)
 
 
 ## Car ids ordered by race position.

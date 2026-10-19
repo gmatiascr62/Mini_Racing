@@ -10,7 +10,7 @@ var _layer: Node2D
 
 
 func _ready() -> void:
-	var bg := TrackView.new(Game.track)
+	var bg := TrackView.overview(Game.track)
 	add_child(bg)
 	_layer = Node2D.new()
 	_layer.draw.connect(_draw_layer)

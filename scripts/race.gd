@@ -4,13 +4,18 @@ extends Node2D
 ## and interpolates the other cars from server snapshots.
 
 const INTERP_TICKS := 5.0
-## Both steering buttons sit together in the bottom-right corner.
-const LEFT_BTN := Rect2(342, 210, 60, 54)
-const RIGHT_BTN := Rect2(414, 210, 60, 54)
-## Touches right of this line steer; the split between the buttons decides
-## left or right.
-const TOUCH_ZONE_X := 290.0
-const TOUCH_SPLIT_X := 408.0
+## Steering buttons in the bottom corners. Any touch on the left half of the
+## screen steers left, on the right half steers right.
+const LEFT_BTN := Rect2(6, 206, 64, 58)
+const RIGHT_BTN := Rect2(410, 206, 64, 58)
+## The camera follows the player's car and turns with it, so the car always
+## points up the screen. It looks this far ahead of the car (px).
+const CAM_AHEAD := 62.0
+## How fast the view turns to follow the car (higher = stiffer).
+const CAM_TURN := 5.0
+## Minimap in the top-right corner: the whole world scaled to fit this box.
+const MAP_POS := Vector2(380, 14)
+const MAP_BOX := Vector2(96, 56)
 const MARK_ROAD := Color(0.13, 0.13, 0.13, 0.75)
 const MARK_GRASS := Color(0.2, 0.33, 0.13, 0.8)
 
@@ -43,6 +48,10 @@ var blink := 0.0
 
 var _cars_layer: Layer
 var _hud_layer: Layer
+var _camera: Camera2D
+var _cam_angle := 0.0
+var _map_line := PackedVector2Array()
+var _map_scale := 0.1
 var _marks_img: Image
 var _marks_tex: ImageTexture
 var _marks_dirty := false
@@ -81,7 +90,7 @@ func _ready() -> void:
 			_me().autopilot = true
 	_standings = sim.standings()
 	add_child(TrackView.new(track))
-	_marks_img = Image.create(480, 270, false, Image.FORMAT_RGBA8)
+	_marks_img = Image.create(int(track.world.x), int(track.world.y), false, Image.FORMAT_RGBA8)
 	_marks_img.fill(Color(0, 0, 0, 0))
 	_marks_tex = ImageTexture.create_from_image(_marks_img)
 	var marks := Sprite2D.new()
@@ -91,9 +100,21 @@ func _ready() -> void:
 	_cars_layer = Layer.new()
 	_cars_layer.cb = _draw_cars
 	add_child(_cars_layer)
+	_camera = Camera2D.new()
+	_camera.ignore_rotation = false
+	add_child(_camera)
+	_camera.make_current()
+	_update_camera(0.0, true)
+	# HUD and buttons stay fixed on screen.
+	var hud := CanvasLayer.new()
+	add_child(hud)
 	_hud_layer = Layer.new()
 	_hud_layer.cb = _draw_hud
-	add_child(_hud_layer)
+	hud.add_child(_hud_layer)
+	_map_scale = minf(MAP_BOX.x / track.world.x, MAP_BOX.y / track.world.y)
+	for i in range(0, track.n, 3):
+		_map_line.append(MAP_POS + track.pts[i] * _map_scale)
+	_map_line.append(_map_line[0])
 
 
 func _exit_tree() -> void:
@@ -125,9 +146,7 @@ func _steer_input() -> float:
 func _side_for(p: Vector2) -> int:
 	if p.y < 20.0:
 		return 0
-	if p.x < TOUCH_ZONE_X:
-		return 0
-	return -1 if p.x < TOUCH_SPLIT_X else 1
+	return -1 if p.x < 240.0 else 1
 
 
 func _input(event: InputEvent) -> void:
@@ -191,6 +210,7 @@ func _physics_process(delta: float) -> void:
 			_show_results()
 	_stamp_marks()
 	_update_particles(delta)
+	_update_camera(delta)
 	var me := _me()
 	var racing := sim.state == RaceSim.STATE_RACING and not show_results
 	Sfx.set_engine(racing or sim.state == RaceSim.STATE_COUNTDOWN, maxf(me.speed(), 0.0) / RaceSim.VMAX)
@@ -278,9 +298,24 @@ func _stamp_marks() -> void:
 		var col := MARK_ROAD if c.on_road else MARK_GRASS
 		for side in [-3.0, 3.0]:
 			var q: Vector2 = (p - dir * 4.0 + right * side).floor()
-			if q.x >= 0 and q.y >= 0 and q.x < 480 and q.y < 270:
+			if q.x >= 0 and q.y >= 0 and q.x < track.world.x and q.y < track.world.y:
 				_marks_img.set_pixelv(Vector2i(q), col)
 				_marks_dirty = true
+
+
+func _update_camera(dt: float, snap: bool = false) -> void:
+	var me := _me()
+	var target := me.heading
+	# Follow the direction the car is moving in rather than where its nose
+	# points, so a skid or a spin after a crash does not whip the view around.
+	if me.vel.dot(me.forward()) > 25.0:
+		target = me.vel.angle()
+	if snap:
+		_cam_angle = target
+	else:
+		_cam_angle = lerp_angle(_cam_angle, target, 1.0 - exp(-CAM_TURN * dt))
+	_camera.position = me.pos + _render_offset + Vector2.from_angle(_cam_angle) * CAM_AHEAD
+	_camera.rotation = _cam_angle + PI / 2.0
 
 
 # ---------------------------------------------------------------- online
@@ -456,29 +491,41 @@ func _build_results_ui() -> void:
 # ---------------------------------------------------------------- drawing
 
 func _draw_cars(ci: CanvasItem) -> void:
-	# Shadows first, then bodies.
+	# Cars are drawn rotated (not with the pre-rotated frames) so they turn
+	# smoothly with the camera. Shadows first, offset down-right on screen.
+	var shadow := Vector2(1, 2).rotated(_camera.rotation)
 	for pass_i in range(2):
 		for c in sim.cars:
-			var frames := CarSprites.frames_for(RaceSim.car_color(c.id))
-			var tex: Texture2D = frames[CarSprites.frame_index(c.heading)]
+			var tex: Texture2D = CarSprites.frames_for(RaceSim.car_color(c.id))[0]
 			var p: Vector2 = c.pos
 			if c.id == my_id:
 				p += _render_offset
-			var at := (p - Vector2(8, 8)).round()
 			if pass_i == 0:
-				ci.draw_texture(tex, at + Vector2(1, 2), Color(0, 0, 0, 0.35))
+				ci.draw_set_transform(p + shadow, c.heading)
+				ci.draw_texture(tex, Vector2(-8, -8), Color(0, 0, 0, 0.35))
 			else:
-				ci.draw_texture(tex, at)
-	# Marker over the player's car before and just after the start.
-	if sim.state == RaceSim.STATE_COUNTDOWN or (sim.time < 3.0 and fmod(blink, 0.4) < 0.25):
-		var p := (_me().pos + _render_offset).round()
-		var col := RaceSim.car_color(my_id)
-		ci.draw_rect(Rect2(p.x - 3, p.y - 14, 7, 1), col)
-		ci.draw_rect(Rect2(p.x - 2, p.y - 13, 5, 1), col)
-		ci.draw_rect(Rect2(p.x - 1, p.y - 12, 3, 1), col)
-		ci.draw_rect(Rect2(p.x, p.y - 11, 1, 1), col)
+				ci.draw_set_transform(p, c.heading)
+				ci.draw_texture(tex, Vector2(-8, -8))
+	ci.draw_set_transform(Vector2.ZERO)
 	for pt in particles:
 		ci.draw_rect(Rect2((pt["pos"] as Vector2).floor(), Vector2(1, 1)), pt["col"])
+
+
+## The whole oval at 1/10 scale with a dot per car.
+func _draw_minimap(ci: CanvasItem) -> void:
+	var size := track.world * _map_scale
+	ci.draw_rect(Rect2(MAP_POS - Vector2(2, 2), size + Vector2(4, 4)), Color(0, 0, 0, 0.55))
+	ci.draw_polyline(_map_line, Pal.LIGHT_GREY, 3.0)
+	var p0 := MAP_POS + track.pts[0] * _map_scale
+	ci.draw_rect(Rect2(p0 - Vector2(0, 2), Vector2(1, 5)), Pal.WHITE)
+	for c in sim.cars:
+		if c.id == my_id:
+			continue
+		var p: Vector2 = (MAP_POS + c.pos * _map_scale).round()
+		ci.draw_rect(Rect2(p - Vector2(1, 1), Vector2(3, 3)), RaceSim.car_color(c.id))
+	var mp: Vector2 = (MAP_POS + (_me().pos + _render_offset) * _map_scale).round()
+	ci.draw_rect(Rect2(mp - Vector2(2, 2), Vector2(5, 5)), Pal.WHITE if fmod(blink, 0.5) < 0.3 else Pal.BLACK)
+	ci.draw_rect(Rect2(mp - Vector2(1, 1), Vector2(3, 3)), RaceSim.car_color(my_id))
 
 
 func _draw_hud(ci: CanvasItem) -> void:
@@ -503,8 +550,15 @@ func _draw_hud(ci: CanvasItem) -> void:
 			ci.draw_rect(Rect2(x, 9, 10, 1), Pal.WHITE)
 		PixelFont.draw_text(ci, str(_standings.find(id) + 1), Vector2(x + 3, 2), 1, Pal.BLACK)
 		x += 12.0
+	_draw_minimap(ci)
 	if not show_results:
 		_draw_controls(ci)
+	# Marker over the player's car before and just after the start.
+	if sim.state == RaceSim.STATE_COUNTDOWN or (sim.time < 3.0 and fmod(blink, 0.4) < 0.25):
+		var sp := (get_viewport().get_canvas_transform() * (me.pos + _render_offset)).round()
+		var col := RaceSim.car_color(my_id)
+		for k in range(4):
+			ci.draw_rect(Rect2(sp.x - 3 + k, sp.y - 16 + k, 7 - k * 2, 1), col)
 	# Countdown lights.
 	if sim.state == RaceSim.STATE_COUNTDOWN:
 		var lit := clampi(3 - ceili(sim.countdown) + 1, 0, 3)
