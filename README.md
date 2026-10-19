@@ -2,11 +2,11 @@
 
 Juego de carreras retro de autitos tipo Fórmula 1 para Android, inspirado en los
 juegos de Commodore 64. Vista desde arriba con la cámara siguiendo a tu auto,
-6 autos, 3 vueltas a un óvalo tipo Indianápolis. Hecho con **Godot 4.3**
+6 autos, 3 vueltas, en un óvalo tipo Indianápolis o en Monza. Hecho con **Godot 4.3**
 (renderer GL Compatibility).
 
 ![Menú](docs/menu.png) ![Carrera](docs/race.png)
-![Largada](docs/countdown.png)
+![Largada](docs/countdown.png) ![Monza](docs/monza.png)
 
 ## Descargar el APK
 
@@ -20,20 +20,27 @@ Cada push compila el APK automáticamente con GitHub Actions:
    orígenes desconocidos"). Es un APK *debug* firmado con una clave de
    depuración: sirve para probar, no para publicar en Play Store.
 
-## La pista y la cámara
+## Pistas y cámara
 
-Hay una sola pista: **INDIANAPOLIS**, un óvalo con las proporciones del real
-(dos rectas largas, dos rectas cortas y cuatro curvas iguales de 90°), que se
-corre en sentido antihorario, como allá. Tiene tribunas afuera de las rectas,
-boxes y la torre de cronometraje en la recta principal, una franja de ladrillos
-en la línea de llegada y una cancha de golf adentro. Todo está rodeado por un
-alambrado que hace de pared.
+En el menú, el botón **< PISTA: ... >** cambia entre:
 
-La pista es el **doble de grande que la pantalla**, así que la cámara sigue a
+- **INDIANAPOLIS**: un óvalo con las proporciones del real (dos rectas largas,
+  dos rectas cortas y cuatro curvas iguales de 90°), en sentido antihorario,
+  como allá. Tribunas afuera de las rectas, boxes y torre de cronometraje en
+  la recta principal, ladrillos en la línea de llegada y una cancha de golf
+  adentro.
+- **MONZA**: Monza sin chicanas, en sentido horario: Curva Grande, Lesmo,
+  Ascari, la recta de atrás y una Parabólica amplia, todo dentro del bosque
+  del parque. Tiene curvas donde hay que levantar.
+
+La pista elegida se guarda en el celular. En online la elige quien **crea** la
+partida. Las dos están rodeadas por un alambrado que hace de pared.
+
+Las pistas son el **doble de grandes que la pantalla**, así que la cámara sigue a
 tu auto y **gira con él**: tu auto siempre apunta hacia arriba y ves la curva
 que viene. La cámara sigue hacia dónde avanza el auto (no hacia dónde apunta
 la trompa), y gira suavemente para que un derrape o un choque no sacudan la
-pantalla. Arriba a la derecha hay un **minimapa** con todo el óvalo y un punto
+pantalla. Arriba a la derecha hay un **minimapa** con toda la pista y un punto
 por auto (el tuyo titila).
 
 ## Nivel de dificultad
@@ -147,7 +154,7 @@ Dos formas (los dos jugadores tienen que usar el mismo servidor):
 ```
 scenes/        escenas (menu, race, lobby, settings, server)
 scripts/
-  track.gd       la pista (óvalo de 960x540, spline, curvatura, grilla de largada)
+  track.gd       las pistas (mundo de 960x540, spline, curvatura, grilla de largada)
   race_sim.gd    simulación compartida: física arcade, IA, choques, vueltas
   race.gd        pantalla de carrera: cámara, HUD, minimapa, controles, predicción online
   server.gd      servidor autoritativo con salas

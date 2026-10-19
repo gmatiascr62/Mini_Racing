@@ -74,11 +74,12 @@ func _draw() -> void:
 		var nr := Vector2(-t.y, t.x)
 		var front := pos + t * 7.0
 		draw_line((front - nr * 5.0).floor(), (front + nr * 5.0).floor(), Pal.WHITE, 1.0)
-	# Start/finish: a strip of bricks with the chequered line on it.
+	# Chequered start/finish line (on a strip of bricks at Indianapolis).
 	var p0 := track.pts[0]
 	var t0 := track.tangents[0]
 	var n0 := track.normals[0]
-	_quad(p0 - t0 * 3.0, p0 + t0 * 3.0, n0, n0, -hw, hw, Color("#a0522d"))
+	if track.id == "indy":
+		_quad(p0 - t0 * 3.0, p0 + t0 * 3.0, n0, n0, -hw, hw, Color("#a0522d"))
 	var cells := int(hw * 2.0 / 2.0)
 	for row in range(2):
 		for c in range(cells):

@@ -19,7 +19,8 @@ func _ready() -> void:
 	sim.setup(RaceSim.make_specs([]), 99)
 	sim.countdown = 0.01
 	var y := 104
-	ui.add("level", Rect2(150, y, 180, 18), "NIVEL: %s" % RaceSim.LEVEL_NAMES[Game.level], Pal.ORANGE.lightened(0.3))
+	ui.add("track", Rect2(116, y, 140, 18), "PISTA: %s" % Game.track.title, Pal.YELLOW)
+	ui.add("level", Rect2(260, y, 104, 18), "NIVEL: %s" % RaceSim.LEVEL_NAMES[Game.level], Pal.ORANGE.lightened(0.3))
 	ui.add("cpu", Rect2(150, y + 23, 180, 18), "CARRERA VS CPU", Pal.LIGHT_GREEN)
 	ui.add("create", Rect2(150, y + 46, 180, 18), "CREAR PARTIDA ONLINE", Pal.CYAN)
 	ui.add("join", Rect2(150, y + 69, 180, 18), "UNIRSE A PARTIDA", Pal.CYAN)
@@ -51,6 +52,9 @@ func _notification(what: int) -> void:
 
 func _on_button(id: String) -> void:
 	match id:
+		"track":
+			Game.next_track()
+			get_tree().reload_current_scene()
 		"level":
 			Game.next_level()
 			get_tree().reload_current_scene()
@@ -84,7 +88,7 @@ func _draw_layer() -> void:
 		ci.draw_rect(Rect2(0, 22 + i * 3 + int(sin(t * 2.0) * 2.0), 480, 3), bars[i])
 	ci.draw_rect(Rect2(0, 44, 480, 42), Color(0, 0, 0, 0.75))
 	PixelFont.draw_text_centered(ci, "MINI RACING", 240, 48, 5, Pal.YELLOW, Pal.RED)
-	PixelFont.draw_text_centered(ci, "%s - %d VUELTAS" % [Game.track.title, RaceSim.DEFAULT_LAPS], 240, 90, 1, Pal.WHITE, Pal.BLACK)
+	PixelFont.draw_text_centered(ci, "GRAN PREMIO RETRO - %d VUELTAS" % RaceSim.DEFAULT_LAPS, 240, 90, 1, Pal.WHITE, Pal.BLACK)
 	ui.draw(ci)
 	if fmod(t, 1.2) < 0.8:
 		PixelFont.draw_text_centered(ci, "2 JUGADORES ONLINE + 4 CPU", 240, 222, 1, Pal.LIGHT_GREEN, Pal.BLACK)

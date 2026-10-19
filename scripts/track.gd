@@ -1,6 +1,6 @@
 class_name Track
 extends RefCounted
-## The Mini Racing circuit: an Indianapolis-style oval in a 960x540 world.
+## A Mini Racing circuit ("indy" or "monza") in a 960x540 world.
 ## The centerline is a closed Catmull-Rom spline resampled at a uniform step,
 ## so "s" (distance along the track) maps directly to a sample index.
 
@@ -14,8 +14,8 @@ const MAX_SAFE_SPEED := 120.0
 ## the player's car, so only part of it is on screen at a time.
 const WORLD := Vector2(960, 540)
 
-const IDS := ["indy"]
-const TITLES := {"indy": "INDIANAPOLIS"}
+const IDS := ["indy", "monza"]
+const TITLES := {"indy": "INDIANAPOLIS", "monza": "MONZA"}
 
 ## Indianapolis-style oval (proportions of the real one): two long straights,
 ## two short chutes and four 90-degree turns of equal radius. Driven
@@ -24,6 +24,20 @@ const INDY_CENTRE := Vector2(480, 270)
 const INDY_STRAIGHT := 560.0
 const INDY_CHUTE := 110.0
 const INDY_RADIUS := 150.0
+
+## Monza without the chicanes, clockwise: main straight (heading left),
+## Curva Grande, Lesmo, Serraglio, Ascari, back straight and Parabolica.
+## Traced on a 480x270 map; scaled 2x (plus MONZA_SHIFT) when built.
+const MONZA_MAP := [
+	Vector2(309, 200), Vector2(220, 200), Vector2(152, 199), Vector2(116, 191),
+	Vector2(96, 171), Vector2(85, 136), Vector2(74, 98), Vector2(60, 65),
+	Vector2(50, 44), Vector2(63, 33), Vector2(105, 32), Vector2(124, 44),
+	Vector2(150, 68), Vector2(184, 94), Vector2(214, 112), Vector2(242, 121),
+	Vector2(281, 124), Vector2(360, 124), Vector2(412, 126), Vector2(442, 138),
+	Vector2(458, 162), Vector2(452, 186), Vector2(428, 199), Vector2(395, 201),
+	Vector2(352, 200),
+]
+const MONZA_SHIFT := Vector2(0, 40)
 
 var id := "indy"
 var title := "INDIANAPOLIS"
@@ -47,9 +61,18 @@ var length := 0.0
 func _init(p_id: String = "indy") -> void:
 	id = p_id if p_id in IDS else "indy"
 	title = TITLES[id]
-	control = _rounded_rect_control(INDY_CENTRE, INDY_STRAIGHT, INDY_CHUTE, INDY_RADIUS)
+	if id == "monza":
+		half_width = 18.0
+		kerb_curv = 0.008
+		for p in MONZA_MAP:
+			control.append(p * 2.0 + MONZA_SHIFT)
+	else:
+		control = _rounded_rect_control(INDY_CENTRE, INDY_STRAIGHT, INDY_CHUTE, INDY_RADIUS)
 	_build()
-	_build_scenery()
+	if id == "monza":
+		_build_monza_scenery()
+	else:
+		_build_scenery()
 
 
 ## Closed counter-clockwise path around a rectangle with rounded corners,
@@ -99,13 +122,30 @@ func _build_scenery() -> void:
 	]
 	var pit := Rect2(300, bottom - outer - 14.0, 280, 12)
 	var greens: Array = [Rect2(360, 200, 70, 40), Rect2(560, 300, 80, 36), Rect2(230, 250, 60, 50)]
+	var trees := _plant_trees(stands, pit, greens, 0.45)
+	scenery = {"stands": stands, "pit": pit, "trees": trees, "greens": greens}
+
+
+## Monza: grandstand outside the main straight, pits on the inside of it and
+## the royal park's woods everywhere else.
+func _build_monza_scenery() -> void:
+	var straight_y := pts[0].y
+	var outer := half_width + KERB_WIDTH + 6.0
+	var stands: Array = [Rect2(340, straight_y + outer, 300, 24)]
+	var pit := Rect2(440, straight_y - outer - 12.0, 240, 12)
+	scenery = {"stands": stands, "pit": pit, "trees": _plant_trees(stands, pit, [], 0.4), "greens": []}
+
+
+## Trees on a jittered grid over the whole world, kept clear of the road,
+## the buildings and the given areas. keep is the share of grid spots used.
+func _plant_trees(stands: Array, pit: Rect2, greens: Array, keep: float) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1911
 	var trees: Array = []
 	for y in range(12, int(WORLD.y) - 6, 15):
 		for x in range(10, int(WORLD.x) - 6, 15):
 			var p := Vector2(x + rng.randi_range(-5, 5), y + rng.randi_range(-5, 5))
-			if rng.randf() < 0.55:
+			if rng.randf() >= keep:
 				continue
 			if absf(locate(p).y) < half_width + KERB_WIDTH + 10.0:
 				continue
@@ -116,7 +156,7 @@ func _build_scenery() -> void:
 					blocked = true
 			if not blocked:
 				trees.append(p)
-	scenery = {"stands": stands, "pit": pit, "trees": trees, "greens": greens}
+	return trees
 
 
 func _build() -> void:
