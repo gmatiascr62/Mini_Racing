@@ -13,9 +13,9 @@ const RIGHT_BTN := Rect2(410, 206, 64, 58)
 const CAM_AHEAD := 62.0
 ## How fast the view turns to follow the car (higher = stiffer).
 const CAM_TURN := 5.0
-## Minimap in the top-right corner (the world at 1/10 scale).
+## Minimap in the top-right corner: the whole world scaled to fit this box.
 const MAP_POS := Vector2(380, 14)
-const MAP_SCALE := 0.1
+const MAP_BOX := Vector2(96, 56)
 const MARK_ROAD := Color(0.13, 0.13, 0.13, 0.75)
 const MARK_GRASS := Color(0.2, 0.33, 0.13, 0.8)
 
@@ -51,6 +51,7 @@ var _hud_layer: Layer
 var _camera: Camera2D
 var _cam_angle := 0.0
 var _map_line := PackedVector2Array()
+var _map_scale := 0.1
 var _marks_img: Image
 var _marks_tex: ImageTexture
 var _marks_dirty := false
@@ -89,7 +90,7 @@ func _ready() -> void:
 			_me().autopilot = true
 	_standings = sim.standings()
 	add_child(TrackView.new(track))
-	_marks_img = Image.create(int(Track.WORLD.x), int(Track.WORLD.y), false, Image.FORMAT_RGBA8)
+	_marks_img = Image.create(int(track.world.x), int(track.world.y), false, Image.FORMAT_RGBA8)
 	_marks_img.fill(Color(0, 0, 0, 0))
 	_marks_tex = ImageTexture.create_from_image(_marks_img)
 	var marks := Sprite2D.new()
@@ -110,8 +111,9 @@ func _ready() -> void:
 	_hud_layer = Layer.new()
 	_hud_layer.cb = _draw_hud
 	hud.add_child(_hud_layer)
+	_map_scale = minf(MAP_BOX.x / track.world.x, MAP_BOX.y / track.world.y)
 	for i in range(0, track.n, 3):
-		_map_line.append(MAP_POS + track.pts[i] * MAP_SCALE)
+		_map_line.append(MAP_POS + track.pts[i] * _map_scale)
 	_map_line.append(_map_line[0])
 
 
@@ -296,7 +298,7 @@ func _stamp_marks() -> void:
 		var col := MARK_ROAD if c.on_road else MARK_GRASS
 		for side in [-3.0, 3.0]:
 			var q: Vector2 = (p - dir * 4.0 + right * side).floor()
-			if q.x >= 0 and q.y >= 0 and q.x < Track.WORLD.x and q.y < Track.WORLD.y:
+			if q.x >= 0 and q.y >= 0 and q.x < track.world.x and q.y < track.world.y:
 				_marks_img.set_pixelv(Vector2i(q), col)
 				_marks_dirty = true
 
@@ -511,17 +513,17 @@ func _draw_cars(ci: CanvasItem) -> void:
 
 ## The whole oval at 1/10 scale with a dot per car.
 func _draw_minimap(ci: CanvasItem) -> void:
-	var size := Track.WORLD * MAP_SCALE
+	var size := track.world * _map_scale
 	ci.draw_rect(Rect2(MAP_POS - Vector2(2, 2), size + Vector2(4, 4)), Color(0, 0, 0, 0.55))
 	ci.draw_polyline(_map_line, Pal.LIGHT_GREY, 3.0)
-	var p0 := MAP_POS + track.pts[0] * MAP_SCALE
+	var p0 := MAP_POS + track.pts[0] * _map_scale
 	ci.draw_rect(Rect2(p0 - Vector2(0, 2), Vector2(1, 5)), Pal.WHITE)
 	for c in sim.cars:
 		if c.id == my_id:
 			continue
-		var p: Vector2 = (MAP_POS + c.pos * MAP_SCALE).round()
+		var p: Vector2 = (MAP_POS + c.pos * _map_scale).round()
 		ci.draw_rect(Rect2(p - Vector2(1, 1), Vector2(3, 3)), RaceSim.car_color(c.id))
-	var mp: Vector2 = (MAP_POS + (_me().pos + _render_offset) * MAP_SCALE).round()
+	var mp: Vector2 = (MAP_POS + (_me().pos + _render_offset) * _map_scale).round()
 	ci.draw_rect(Rect2(mp - Vector2(2, 2), Vector2(5, 5)), Pal.WHITE if fmod(blink, 0.5) < 0.3 else Pal.BLACK)
 	ci.draw_rect(Rect2(mp - Vector2(1, 1), Vector2(3, 3)), RaceSim.car_color(my_id))
 

@@ -13,11 +13,18 @@ func _init(p_track: Track = null) -> void:
 	track = p_track
 
 
-## The whole circuit at half size, so it fits the 480x270 screen (menus).
+## The whole circuit scaled down to fill the 480x270 screen (menus).
 static func overview(p_track: Track) -> TrackView:
 	var v := TrackView.new(p_track)
-	v.scale = Vector2(0.5, 0.5)
+	v.transform = overview_transform(p_track)
 	return v
+
+
+## Scale and centring that fit the whole world on the 480x270 screen.
+static func overview_transform(p_track: Track) -> Transform2D:
+	var screen := Vector2(480, 270)
+	var k := minf(screen.x / p_track.world.x, screen.y / p_track.world.y)
+	return Transform2D(0.0, Vector2(k, k), 0.0, (screen - p_track.world * k) / 2.0)
 
 
 func _ready() -> void:
@@ -30,7 +37,7 @@ func _draw() -> void:
 	var n := track.n
 	var hw := track.half_width
 	var kw := Track.KERB_WIDTH
-	var world := Track.WORLD
+	var world := track.world
 	# Land outside the fence: car park and fields.
 	draw_rect(Rect2(-OUTSIDE, -OUTSIDE, world.x + OUTSIDE * 2.0, world.y + OUTSIDE * 2.0), Color("#3f7f37"))
 	for y in range(int(-OUTSIDE) + 20, int(world.y + OUTSIDE), 24):

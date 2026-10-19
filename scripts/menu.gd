@@ -12,7 +12,7 @@ func _ready() -> void:
 	Sfx.stop_all()
 	add_child(TrackView.overview(Game.track))
 	_cars = Node2D.new()
-	_cars.scale = Vector2(0.5, 0.5)
+	_cars.transform = TrackView.overview_transform(Game.track)
 	_cars.draw.connect(_draw_cars)
 	add_child(_cars)
 	sim = RaceSim.new(Game.track)

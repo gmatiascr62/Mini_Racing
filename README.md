@@ -2,11 +2,11 @@
 
 Juego de carreras retro de autitos tipo Fórmula 1 para Android, inspirado en los
 juegos de Commodore 64. Vista desde arriba con la cámara siguiendo a tu auto,
-6 autos, 3 vueltas, en un óvalo tipo Indianápolis o en Monza. Hecho con **Godot 4.3**
+6 autos, 3 vueltas, en Indianápolis, Monza o el viejo Hockenheim. Hecho con **Godot 4.3**
 (renderer GL Compatibility).
 
 ![Menú](docs/menu.png) ![Carrera](docs/race.png)
-![Largada](docs/countdown.png) ![Monza](docs/monza.png)
+![Largada](docs/countdown.png) ![Monza](docs/monza.png) ![Hockenheim](docs/hockenheim.png)
 
 ## Descargar el APK
 
@@ -32,11 +32,17 @@ En el menú, el botón **< PISTA: ... >** cambia entre:
 - **MONZA**: Monza sin chicanas, en sentido horario: Curva Grande, Lesmo,
   Ascari, la recta de atrás y una Parabólica amplia, todo dentro del bosque
   del parque. Tiene curvas donde hay que levantar.
+- **HOCKENHEIM**: el Hockenheim viejo (antes de 2002), lo más fiel posible al
+  mapa: largada en el estadio, Nordkurve, la recta larga por el bosque,
+  Bremsschikane 1, la chicana y la Ostkurve, la recta de vuelta con la
+  Bremsschikane 2 y el estadio (Agip, Sachs y Südkurve) con las tribunas del
+  Motodrom. Es la más larga: mucho más grande que las otras y metida en un
+  bosque tupido (una vuelta dura unos 37 segundos).
 
 La pista elegida se guarda en el celular. En online la elige quien **crea** la
 partida. Las dos están rodeadas por un alambrado que hace de pared.
 
-Las pistas son el **doble de grandes que la pantalla**, así que la cámara sigue a
+Las pistas son **más grandes que la pantalla** (el doble, y Hockenheim más todavía), así que la cámara sigue a
 tu auto y **gira con él**: tu auto siempre apunta hacia arriba y ves la curva
 que viene. La cámara sigue hacia dónde avanza el auto (no hacia dónde apunta
 la trompa), y gira suavemente para que un derrape o un choque no sacudan la
@@ -154,7 +160,7 @@ Dos formas (los dos jugadores tienen que usar el mismo servidor):
 ```
 scenes/        escenas (menu, race, lobby, settings, server)
 scripts/
-  track.gd       las pistas (mundo de 960x540, spline, curvatura, grilla de largada)
+  track.gd       las pistas (tamaño de cada una, spline, curvatura, grilla de largada)
   race_sim.gd    simulación compartida: física arcade, IA, choques, vueltas
   race.gd        pantalla de carrera: cámara, HUD, minimapa, controles, predicción online
   server.gd      servidor autoritativo con salas

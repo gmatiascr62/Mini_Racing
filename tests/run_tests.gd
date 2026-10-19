@@ -62,10 +62,10 @@ func _initialize() -> void:
 
 func test_track() -> void:
 	print("== track ==")
-	check(track.length > 1800.0 and track.length < 3000.0, "track length %.0f px" % track.length)
+	check(track.length > 1800.0 and track.length < 4500.0, "track length %.0f px" % track.length)
 	var inside := true
 	for p in track.pts:
-		if p.x < 30 or p.x > Track.WORLD.x - 30 or p.y < 30 or p.y > Track.WORLD.y - 30:
+		if p.x < 30 or p.x > track.world.x - 30 or p.y < 30 or p.y > track.world.y - 30:
 			inside = false
 	check(inside, "whole circuit fits inside the fenced world")
 	var grid_ok := true

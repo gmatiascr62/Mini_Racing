@@ -34,7 +34,7 @@ const STATE_RACING := 1
 const STATE_FINISHED := 2
 
 const COUNTDOWN_TIME := 3.0
-## After every human finished, CPUs get this long to cross the line.
+## After every human finished, CPUs get at least this long to cross the line.
 const FINISH_GRACE := 15.0
 const MAX_RACE_TIME := 600.0
 
@@ -276,8 +276,8 @@ func step_car(c: Car, dt: float) -> void:
 		if c.vel.x < 0.0:
 			c.vel.x *= -0.4
 			hit = true
-	elif c.pos.x > Track.WORLD.x - BOUNDS_MARGIN:
-		c.pos.x = Track.WORLD.x - BOUNDS_MARGIN
+	elif c.pos.x > track.world.x - BOUNDS_MARGIN:
+		c.pos.x = track.world.x - BOUNDS_MARGIN
 		if c.vel.x > 0.0:
 			c.vel.x *= -0.4
 			hit = true
@@ -286,8 +286,8 @@ func step_car(c: Car, dt: float) -> void:
 		if c.vel.y < 0.0:
 			c.vel.y *= -0.4
 			hit = true
-	elif c.pos.y > Track.WORLD.y - BOUNDS_MARGIN:
-		c.pos.y = Track.WORLD.y - BOUNDS_MARGIN
+	elif c.pos.y > track.world.y - BOUNDS_MARGIN:
+		c.pos.y = track.world.y - BOUNDS_MARGIN
 		if c.vel.y > 0.0:
 			c.vel.y *= -0.4
 			hit = true
@@ -491,10 +491,16 @@ func _check_race_end() -> void:
 				humans_done = false
 	if all_done or time >= MAX_RACE_TIME:
 		state = STATE_FINISHED
-	elif humans_done and last_human_finish >= 0.0 and time - last_human_finish >= FINISH_GRACE:
+	elif humans_done and last_human_finish >= 0.0 and time - last_human_finish >= finish_grace():
 		state = STATE_FINISHED
 	if state == STATE_FINISHED:
 		events.append({"type": "race_over"})
+
+
+## How long CPUs get to cross the line after every human finished: at least
+## FINISH_GRACE, more on long circuits (60% of a flat-out lap).
+func finish_grace() -> float:
+	return maxf(FINISH_GRACE, track.length / VMAX * 0.6)
 
 
 ## Car ids ordered by race position.

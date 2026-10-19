@@ -1,6 +1,7 @@
 class_name Track
 extends RefCounted
-## A Mini Racing circuit ("indy" or "monza") in a 960x540 world.
+## A Mini Racing circuit ("indy", "monza" or "hockenheim"). Each circuit has
+## its own world size, bigger than the screen; the camera follows the car.
 ## The centerline is a closed Catmull-Rom spline resampled at a uniform step,
 ## so "s" (distance along the track) maps directly to a sample index.
 
@@ -10,12 +11,11 @@ const TARGET_STEP := 4.0
 ## Lateral grip used to compute the safe cornering speed (must match RaceSim).
 const SAFE_GRIP := 215.0
 const MAX_SAFE_SPEED := 120.0
-## Size of the playing area (twice the 480x270 screen). The camera follows
-## the player's car, so only part of it is on screen at a time.
+## Default size of the playing area (twice the 480x270 screen).
 const WORLD := Vector2(960, 540)
 
-const IDS := ["indy", "monza"]
-const TITLES := {"indy": "INDIANAPOLIS", "monza": "MONZA"}
+const IDS := ["indy", "monza", "hockenheim"]
+const TITLES := {"indy": "INDIANAPOLIS", "monza": "MONZA", "hockenheim": "HOCKENHEIM"}
 
 ## Indianapolis-style oval (proportions of the real one): two long straights,
 ## two short chutes and four 90-degree turns of equal radius. Driven
@@ -39,9 +39,37 @@ const MONZA_MAP := [
 ]
 const MONZA_SHIFT := Vector2(0, 40)
 
+## Old Hockenheim (before 2002), clockwise, traced from the circuit map:
+## start straight in the stadium, Nordkurve, the long straight through the
+## forest, Bremsschikane 1, Ostkurve chicane and Ostkurve, the straight back
+## with Bremsschikane 2, then Agip, Sachs and Sudkurve in the stadium.
+## Map coordinates; built as (p - HOCK_ORIGIN) * HOCK_SCALE.
+const HOCKENHEIM_MAP := [
+	Vector2(88, 296), Vector2(81, 274), Vector2(75, 255), Vector2(69, 240),
+	Vector2(71, 229), Vector2(82, 216), Vector2(102, 195), Vector2(124, 172),
+	Vector2(147, 149), Vector2(170, 128), Vector2(194, 108), Vector2(218, 90),
+	Vector2(240, 77), Vector2(252, 71), Vector2(262, 68), Vector2(270, 73),
+	Vector2(278, 73), Vector2(287, 66), Vector2(304, 60),
+	Vector2(330, 57), Vector2(360, 57), Vector2(390, 61), Vector2(414, 69),
+	Vector2(426, 76), Vector2(434, 84), Vector2(442, 88), Vector2(450, 89),
+	Vector2(458, 95), Vector2(466, 104), Vector2(472, 120), Vector2(469, 134),
+	Vector2(455, 143), Vector2(430, 153), Vector2(406, 163), Vector2(380, 173),
+	Vector2(352, 185), Vector2(326, 196), Vector2(307, 204), Vector2(299, 211),
+	Vector2(293, 218), Vector2(286, 222), Vector2(278, 224), Vector2(258, 234),
+	Vector2(232, 250), Vector2(204, 267), Vector2(178, 284), Vector2(158, 299),
+	Vector2(146, 302), Vector2(137, 296), Vector2(129, 286), Vector2(121, 275),
+	Vector2(111, 269), Vector2(102, 274), Vector2(101, 287), Vector2(109, 299),
+	Vector2(121, 308), Vector2(128, 318), Vector2(122, 329), Vector2(108, 331),
+	Vector2(96, 321), Vector2(91, 308),
+]
+const HOCK_ORIGIN := Vector2(40, 40)
+const HOCK_SCALE := 3.2
+
 var id := "indy"
 var title := "INDIANAPOLIS"
 var half_width := HALF_WIDTH
+## Size of the fenced playing area.
+var world := WORLD
 ## Corners sharper than this get red/white kerbs.
 var kerb_curv := 0.005
 ## Decoration: {"stands": Array[Rect2], "pit": Rect2, "trees": Array[Vector2],
@@ -66,11 +94,19 @@ func _init(p_id: String = "indy") -> void:
 		kerb_curv = 0.008
 		for p in MONZA_MAP:
 			control.append(p * 2.0 + MONZA_SHIFT)
+	elif id == "hockenheim":
+		half_width = 17.0
+		kerb_curv = 0.012
+		world = Vector2(1480, 990)
+		for p in HOCKENHEIM_MAP:
+			control.append((p - HOCK_ORIGIN) * HOCK_SCALE)
 	else:
 		control = _rounded_rect_control(INDY_CENTRE, INDY_STRAIGHT, INDY_CHUTE, INDY_RADIUS)
 	_build()
 	if id == "monza":
 		_build_monza_scenery()
+	elif id == "hockenheim":
+		_build_hockenheim_scenery()
 	else:
 		_build_scenery()
 
@@ -117,7 +153,7 @@ func _build_scenery() -> void:
 	var bottom := INDY_CENTRE.y + INDY_CHUTE / 2.0 + INDY_RADIUS
 	var top := INDY_CENTRE.y - INDY_CHUTE / 2.0 - INDY_RADIUS
 	var stands: Array = [
-		Rect2(250, bottom + outer, 460, WORLD.y - 8.0 - bottom - outer),
+		Rect2(250, bottom + outer, 460, world.y - 8.0 - bottom - outer),
 		Rect2(330, 8, 300, top - outer - 8.0),
 	]
 	var pit := Rect2(300, bottom - outer - 14.0, 280, 12)
@@ -136,21 +172,28 @@ func _build_monza_scenery() -> void:
 	scenery = {"stands": stands, "pit": pit, "trees": _plant_trees(stands, pit, [], 0.4), "greens": []}
 
 
+## Hockenheim: grandstands of the Motodrom around the stadium and a thick
+## forest everywhere else.
+func _build_hockenheim_scenery() -> void:
+	var stands: Array = [Rect2(20, 600, 44, 250), Rect2(160, 1020 - 70, 260, 26)]
+	scenery = {"stands": stands, "pit": Rect2(), "trees": _plant_trees(stands, Rect2(), [], 0.62), "greens": []}
+
+
 ## Trees on a jittered grid over the whole world, kept clear of the road,
 ## the buildings and the given areas. keep is the share of grid spots used.
 func _plant_trees(stands: Array, pit: Rect2, greens: Array, keep: float) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1911
 	var trees: Array = []
-	for y in range(12, int(WORLD.y) - 6, 15):
-		for x in range(10, int(WORLD.x) - 6, 15):
+	for y in range(12, int(world.y) - 6, 15):
+		for x in range(10, int(world.x) - 6, 15):
 			var p := Vector2(x + rng.randi_range(-5, 5), y + rng.randi_range(-5, 5))
 			if rng.randf() >= keep:
 				continue
 			if absf(locate(p).y) < half_width + KERB_WIDTH + 10.0:
 				continue
 			# Pits plus the pagoda above them.
-			var blocked := Rect2(pit.position - Vector2(10, 34), pit.size + Vector2(20, 44)).has_point(p)
+			var blocked := pit.size.x > 0.0 and Rect2(pit.position - Vector2(10, 34), pit.size + Vector2(20, 44)).has_point(p)
 			for r in stands + greens:
 				if (r as Rect2).grow(8).has_point(p):
 					blocked = true
