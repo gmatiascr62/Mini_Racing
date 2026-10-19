@@ -105,6 +105,8 @@ func _load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_PATH) == OK:
 		server_url = cfg.get_value("net", "server_url", NetConfig.DEFAULT_SERVER_URL)
+		if server_url == NetConfig.OLD_DEFAULT_URL or server_url.strip_edges() == "":
+			server_url = NetConfig.DEFAULT_SERVER_URL
 		track_id = str(cfg.get_value("game", "track", Track.IDS[0]))
 		level = clampi(int(cfg.get_value("game", "level", RaceSim.DEFAULT_LEVEL)), 0, RaceSim.LEVEL_NAMES.size() - 1)
 
