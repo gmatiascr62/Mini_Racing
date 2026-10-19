@@ -146,11 +146,14 @@ godot --headless --path . -- --server --port=9080
 
 ### Paso 2: decirle al juego dónde está el servidor
 
-Dos formas (los dos jugadores tienen que usar el mismo servidor):
+El APK ya viene con el servidor público
+**`wss://mini-racing-server.onrender.com`** por defecto: no hay que escribir
+nada. Si usás otro servidor, hay dos formas de cambiarlo (los dos jugadores
+tienen que usar el mismo):
 
 - **En el juego**: menú → **SERVIDOR ONLINE** → escribir la URL `wss://...`
   → **GUARDAR Y PROBAR**. Queda guardada en el celular.
-- **En el APK** (recomendado, así nadie tiene que escribir nada): en GitHub,
+- **En el APK**: en GitHub,
   **Settings → Secrets and variables → Actions → Variables → New repository
   variable**, nombre `MINI_RACING_SERVER_URL`, valor `wss://...`. El próximo
   APK que compile Actions ya viene con esa URL por defecto.
