@@ -1,6 +1,6 @@
 class_name Track
 extends RefCounted
-## A Mini Racing circuit ("indy", "monza", "hockenheim" or "interlagos"). Each circuit has
+## A Mini Racing circuit ("indy", "monza", "hockenheim", "interlagos" or "lemans"). Each circuit has
 ## its own world size, bigger than the screen; the camera follows the car.
 ## The centerline is a closed Catmull-Rom spline resampled at a uniform step,
 ## so "s" (distance along the track) maps directly to a sample index.
@@ -14,8 +14,8 @@ const MAX_SAFE_SPEED := 120.0
 ## Default size of the playing area (twice the 480x270 screen).
 const WORLD := Vector2(960, 540)
 
-const IDS := ["indy", "monza", "hockenheim", "interlagos"]
-const TITLES := {"indy": "INDIANAPOLIS", "monza": "MONZA", "hockenheim": "HOCKENHEIM", "interlagos": "INTERLAGOS"}
+const IDS := ["indy", "monza", "hockenheim", "interlagos", "lemans"]
+const TITLES := {"indy": "INDIANAPOLIS", "monza": "MONZA", "hockenheim": "HOCKENHEIM", "interlagos": "INTERLAGOS", "lemans": "LE MANS"}
 
 ## Indianapolis-style oval (proportions of the real one): two long straights,
 ## two short chutes and four 90-degree turns of equal radius. Driven
@@ -102,6 +102,24 @@ const INTERLAGOS_MAP := [
 	Vector2(530, 121), Vector2(513, 125), Vector2(495, 130), Vector2(477, 134), Vector2(460, 138), Vector2(442, 142),
 	Vector2(425, 147), Vector2(407, 151), Vector2(390, 155), Vector2(372, 160),
 ]
+## Le Mans (Circuit de la Sarthe), clockwise, traced from the circuit map and
+## rotated so north points left: start, Dunlop curve and chicane, the Esses,
+## Tertre Rouge, the Hunaudieres (Mulsanne) straight with its two chicanes,
+## Mulsanne corner, Indianapolis, Arnage, the Porsche curves and the Ford
+## chicanes. By far the longest circuit (~6600 px).
+const LEMANS_MAP := [
+	Vector2(556, 936), Vector2(458, 903), Vector2(387, 875), Vector2(334, 842), Vector2(294, 792), Vector2(267, 725),
+	Vector2(242, 704), Vector2(234, 681), Vector2(209, 607), Vector2(182, 524), Vector2(191, 479), Vector2(172, 433),
+	Vector2(137, 406), Vector2(112, 326), Vector2(110, 254), Vector2(124, 229), Vector2(175, 200), Vector2(264, 171),
+	Vector2(377, 141), Vector2(496, 134), Vector2(731, 132), Vector2(967, 132), Vector2(1117, 130), Vector2(1155, 148),
+	Vector2(1206, 131), Vector2(1439, 124), Vector2(1675, 124), Vector2(1910, 122), Vector2(2083, 118), Vector2(2103, 110),
+	Vector2(2169, 118), Vector2(2337, 130), Vector2(2522, 176), Vector2(2714, 224), Vector2(2860, 271), Vector2(2858, 342),
+	Vector2(2809, 427), Vector2(2729, 549), Vector2(2618, 679), Vector2(2493, 804), Vector2(2386, 883), Vector2(2301, 940),
+	Vector2(2231, 972), Vector2(2170, 975), Vector2(2161, 1057), Vector2(2163, 1121), Vector2(2097, 1129), Vector2(1909, 1115),
+	Vector2(1720, 1138), Vector2(1606, 1162), Vector2(1510, 1179), Vector2(1460, 1138), Vector2(1399, 1073), Vector2(1327, 1063),
+	Vector2(1245, 1091), Vector2(1170, 1030), Vector2(1145, 1001), Vector2(1085, 988), Vector2(966, 959), Vector2(873, 958),
+	Vector2(804, 954), Vector2(749, 964), Vector2(712, 965), Vector2(673, 977), Vector2(628, 962), Vector2(577, 945),
+]
 const HOCK_ORIGIN := Vector2(40, 40)
 const HOCK_SCALE := 3.2
 
@@ -135,6 +153,11 @@ func _init(p_id: String = "indy") -> void:
 		kerb_curv = 0.008
 		for p in MONZA_MAP:
 			control.append(p * 2.0 + MONZA_SHIFT)
+	elif id == "lemans":
+		half_width = 17.0
+		kerb_curv = 0.012
+		world = Vector2(2970, 1289)
+		control = LEMANS_MAP
 	elif id == "interlagos":
 		half_width = 17.0
 		kerb_curv = 0.01
@@ -157,6 +180,8 @@ func _init(p_id: String = "indy") -> void:
 		_build_hockenheim_scenery()
 	elif id == "interlagos":
 		_build_interlagos_scenery()
+	elif id == "lemans":
+		_build_lemans_scenery()
 	else:
 		_build_scenery()
 
@@ -254,6 +279,19 @@ func _build_interlagos_scenery() -> void:
 	scenery = {"stands": stands, "pit": pit, "trees": _plant_trees(stands, pit, keep_out, 0.3), "greens": [], "lakes": [lake]}
 
 
+## Le Mans: the big main grandstands along the start straight with the pits
+## opposite, stands at the Dunlop curve and the Porsche curves, and the
+## forest along the whole lap (only near the road: the circuit is huge).
+func _build_lemans_scenery() -> void:
+	var stands: Array = []
+	for ci in [63, 64, 65, 0, 1]:
+		stands.append(_stand_beside(ci, -1.0, Vector2(40, 40)))
+	stands.append(_stand_beside(4, -1.0, Vector2(40, 30)))
+	stands.append(_stand_beside(50, -1.0, Vector2(30, 40)))
+	var pit := _stand_beside(64, 1.0, Vector2(12, 70))
+	scenery = {"stands": stands, "pit": pit, "trees": _plant_trees(stands, pit, [], 0.5, 160.0), "greens": []}
+
+
 ## Axis-aligned box of the given size next to the road at control point ci,
 ## on the right (side 1) or left (side -1) of the driving direction.
 func _stand_beside(ci: int, side: float, size: Vector2) -> Rect2:
@@ -275,7 +313,7 @@ func _stand_beside(ci: int, side: float, size: Vector2) -> Rect2:
 
 ## Trees on a jittered grid over the whole world, kept clear of the road,
 ## the buildings and the given areas. keep is the share of grid spots used.
-func _plant_trees(stands: Array, pit: Rect2, greens: Array, keep: float) -> Array:
+func _plant_trees(stands: Array, pit: Rect2, greens: Array, keep: float, max_dist: float = INF) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1911
 	var trees: Array = []
@@ -284,7 +322,8 @@ func _plant_trees(stands: Array, pit: Rect2, greens: Array, keep: float) -> Arra
 			var p := Vector2(x + rng.randi_range(-5, 5), y + rng.randi_range(-5, 5))
 			if rng.randf() >= keep:
 				continue
-			if absf(locate(p).y) < half_width + KERB_WIDTH + 10.0:
+			var lat := absf(locate(p).y)
+			if lat < half_width + KERB_WIDTH + 10.0 or lat > max_dist:
 				continue
 			# Pits plus the pagoda above them.
 			var blocked := pit.size.x > 0.0 and Rect2(pit.position - Vector2(10, 34), pit.size + Vector2(20, 44)).has_point(p)

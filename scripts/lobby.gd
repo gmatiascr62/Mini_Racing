@@ -18,7 +18,7 @@ func _ready() -> void:
 	Game.net.message.connect(_on_message)
 	Game.net.closed.connect(_on_closed)
 	if Game.lobby_action == "create":
-		_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS, "track": Game.track_id, "level": Game.level})
+		_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS, "track": Game.track_id, "level": Game.level, "tour": Game.lobby_tour})
 	else:
 		_set_state("keypad")
 		if Game.debug_code != "":
@@ -116,7 +116,7 @@ func _on_button(id: String) -> void:
 			Game.goto("menu")
 		"retry":
 			if Game.lobby_action == "create":
-				_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS, "track": Game.track_id, "level": Game.level})
+				_connect_and_send({"t": "create", "v": NetConfig.PROTOCOL, "laps": RaceSim.DEFAULT_LAPS, "track": Game.track_id, "level": Game.level, "tour": Game.lobby_tour})
 			else:
 				_set_state("keypad")
 		"del":
@@ -159,6 +159,8 @@ func _draw_layer() -> void:
 			PixelFont.draw_text_centered(ci, "PASALE ESTE CODIGO A TU RIVAL", 240, 134, 1, Pal.WHITE)
 			PixelFont.draw_text_centered(ci, "ESPERANDO AL OTRO JUGADOR" + dots, 240, 154, 1, Pal.CYAN)
 			PixelFont.draw_text_centered(ci, "LA CARRERA EMPIEZA SOLA AL UNIRSE", 240, 174, 1, Pal.LIGHT_GREY)
+			if Game.lobby_tour:
+				PixelFont.draw_text_centered(ci, "TORNEO: %d PISTAS, 6-5-4-3-2-1 PUNTOS" % Track.IDS.size(), 240, 190, 1, Pal.YELLOW)
 		"joined":
 			PixelFont.draw_text_centered(ci, "SALA " + code, 240, 80, 3, Pal.YELLOW)
 			PixelFont.draw_text_centered(ci, "CONECTADO! PREPARANDO LA LARGADA" + dots, 240, 130, 1, Pal.CYAN)

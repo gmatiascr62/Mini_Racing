@@ -21,8 +21,10 @@ func _ready() -> void:
 	var y := 104
 	ui.add("track", Rect2(116, y, 140, 18), "PISTA: %s" % Game.track.title, Pal.YELLOW)
 	ui.add("level", Rect2(260, y, 104, 18), "NIVEL: %s" % RaceSim.LEVEL_NAMES[Game.level], Pal.ORANGE.lightened(0.3))
-	ui.add("cpu", Rect2(150, y + 23, 180, 18), "CARRERA VS CPU", Pal.LIGHT_GREEN)
-	ui.add("create", Rect2(150, y + 46, 180, 18), "CREAR PARTIDA ONLINE", Pal.CYAN)
+	ui.add("cpu", Rect2(116, y + 23, 122, 18), "CARRERA VS CPU", Pal.LIGHT_GREEN)
+	ui.add("tour", Rect2(242, y + 23, 122, 18), "TORNEO VS CPU", Pal.YELLOW)
+	ui.add("create", Rect2(116, y + 46, 122, 18), "CREAR CARRERA", Pal.CYAN)
+	ui.add("create_tour", Rect2(242, y + 46, 122, 18), "CREAR TORNEO", Pal.YELLOW)
 	ui.add("join", Rect2(150, y + 69, 180, 18), "UNIRSE A PARTIDA", Pal.CYAN)
 	ui.add("server", Rect2(150, y + 92, 180, 18), "SERVIDOR ONLINE", Pal.LIGHT_GREY)
 	_layer = Node2D.new()
@@ -61,11 +63,15 @@ func _on_button(id: String) -> void:
 		"cpu":
 			Game.mode = "offline"
 			Game.goto("race")
-		"create":
+		"tour":
+			Game.start_tournament()
+		"create", "create_tour":
 			Game.lobby_action = "create"
+			Game.lobby_tour = id == "create_tour"
 			Game.goto("lobby")
 		"join":
 			Game.lobby_action = "join"
+			Game.lobby_tour = false
 			Game.goto("lobby")
 		"server":
 			Game.goto("settings")

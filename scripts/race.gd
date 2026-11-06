@@ -44,6 +44,8 @@ var conn_lost := ""
 var peer_left := false
 var waiting_again := false
 var rival_wants_again := false
+## Tournament results screen: false = this race, true = championship table.
+var show_table := false
 var blink := 0.0
 
 var _cars_layer: Layer
@@ -84,7 +86,7 @@ func _ready() -> void:
 		Game.net.message.connect(_on_net_message)
 		Game.net.closed.connect(_on_net_closed)
 	else:
-		sim.setup(RaceSim.make_specs(["VOS"]), RaceSim.DEFAULT_LAPS, Game.level)
+		sim.setup(RaceSim.make_specs(["VOS"]), Game.debug_laps if Game.debug_laps > 0 else RaceSim.DEFAULT_LAPS, Game.level)
 		my_id = RaceSim.human_car_id(0)
 		if Game.autodrive:
 			_me().autopilot = true
@@ -191,6 +193,17 @@ func _on_button(id: String) -> void:
 					_build_results_ui()
 			else:
 				get_tree().reload_current_scene()
+		"next":
+			if online:
+				if conn_lost == "":
+					Game.net.send({"t": "again"})
+					waiting_again = true
+					_build_results_ui()
+			else:
+				Game.next_tour_race()
+		"table":
+			show_table = not show_table
+			_build_results_ui()
 		"menu":
 			_back_to_menu()
 
@@ -375,6 +388,9 @@ func _on_net_message(msg: Dictionary) -> void:
 			results = msg.get("res", [])
 			sim.state = RaceSim.STATE_FINISHED
 			_show_results()
+			var tour = msg.get("tour", null)
+			if tour is Dictionary:
+				Game.tour_points = (tour.get("pts", []) as Array).map(func(v) -> int: return int(v))
 		"start":
 			# Rematch: reload the race with the new data.
 			Game.apply_start(msg)
@@ -470,6 +486,10 @@ func _on_snapshot(msg: Dictionary) -> void:
 # ---------------------------------------------------------------- results
 
 func _show_results() -> void:
+	if Game.tour_active:
+		Game.tour_points_before = Game.tour_points.duplicate()
+		if not online:
+			Game.tour_points = RaceSim.award(Game.tour_points, results)
 	show_results = true
 	touches.clear()
 	Sfx.stop_all()
@@ -480,6 +500,15 @@ func _build_results_ui() -> void:
 	ui.clear()
 	if conn_lost != "":
 		ui.add("menu", Rect2(190, 226, 100, 18), "MENU", Pal.LIGHT_RED)
+		return
+	if Game.tour_active:
+		var last := Game.tour_round >= Game.tour_rounds() - 1
+		var next_text := "NUEVO TORNEO" if (last and online) else ("FIN" if last else "SIGUIENTE")
+		if online and waiting_again:
+			next_text = "ESPERANDO..."
+		ui.add("next", Rect2(108, 226, 92, 18), next_text, Pal.LIGHT_GREEN)
+		ui.add("table", Rect2(204, 226, 72, 18), "CARRERA" if show_table else "TABLA", Pal.YELLOW)
+		ui.add("menu", Rect2(280, 226, 92, 18), "MENU", Pal.LIGHT_RED)
 		return
 	var again_text := "OTRA VEZ"
 	if online and waiting_again:
@@ -562,6 +591,11 @@ func _draw_hud(ci: CanvasItem) -> void:
 	# Countdown lights.
 	if sim.state == RaceSim.STATE_COUNTDOWN:
 		var lit := clampi(3 - ceili(sim.countdown) + 1, 0, 3)
+		if Game.tour_active:
+			var title := "TORNEO - CARRERA %d DE %d: %s" % [Game.tour_round + 1, Game.tour_rounds(), track.title]
+			var tw := PixelFont.text_width(title, 1) + 12
+			Ui.draw_panel(ci, Rect2(240 - tw / 2.0, 80, tw, 14), Color(0, 0, 0, 0.85), Pal.YELLOW)
+			PixelFont.draw_text_centered(ci, title, 240, 84, 1, Pal.YELLOW)
 		Ui.draw_panel(ci, Rect2(204, 100, 72, 30), Color(0, 0, 0, 0.85), Pal.GREY)
 		for i in range(3):
 			var col := Pal.RED.lightened(0.2) if i < lit else Color("#301010")
@@ -609,13 +643,72 @@ func _draw_controls(ci: CanvasItem) -> void:
 				ci.draw_rect(Rect2(cx - 6, cy + row, len + 3, 1), col)
 
 
+func _car_name(id: int) -> String:
+	var name: String = sim.cars[id].name
+	if id == my_id and name != "VOS":
+		name += " (VOS)"
+	return name
+
+
+## Championship table: total points, sorted, with what each car won in the
+## last race. After the last race it crowns the champion.
+func _draw_tour_table(ci: CanvasItem) -> void:
+	var last := Game.tour_round >= Game.tour_rounds() - 1
+	Ui.draw_panel(ci, Rect2(100, 30, 280, 220), Color(0, 0, 0, 0.9), Pal.YELLOW)
+	PixelFont.draw_text_centered(ci, "CAMPEONATO", 240, 36, 2, Pal.YELLOW)
+	PixelFont.draw_text_centered(ci, "DESPUES DE %d DE %d CARRERAS" % [Game.tour_round + 1, Game.tour_rounds()], 240, 54, 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "POS", Vector2(118, 70), 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "PILOTO", Vector2(146, 70), 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "CARRERA", Vector2(262, 70), 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "PUNTOS", Vector2(324, 70), 1, Pal.LIGHT_GREY)
+	var y := 84.0
+	var order := RaceSim.tour_order(Game.tour_points)
+	for k in range(order.size()):
+		var id: int = order[k]
+		var col := Pal.YELLOW if id == my_id else Pal.WHITE
+		ci.draw_rect(Rect2(118, y, 8, 7), RaceSim.car_color(id))
+		var total := int(Game.tour_points[id]) if id < Game.tour_points.size() else 0
+		var before := int(Game.tour_points_before[id]) if id < Game.tour_points_before.size() else 0
+		PixelFont.draw_text(ci, str(k + 1), Vector2(130, y), 1, col)
+		PixelFont.draw_text(ci, _car_name(id), Vector2(146, y), 1, col)
+		PixelFont.draw_text(ci, "+%d" % (total - before), Vector2(270, y), 1, Pal.LIGHT_GREEN)
+		PixelFont.draw_text(ci, str(total), Vector2(332, y), 1, col)
+		y += 14.0
+	var note := ""
+	if last:
+		var champ: int = order[0]
+		note = "CAMPEON: %s!" % _car_name(champ)
+	else:
+		note = "PROXIMA: %s" % Track.TITLES[Track.IDS[Game.tour_round + 1]]
+	if fmod(blink, 1.0) < 0.75 or not last:
+		PixelFont.draw_text_centered(ci, note, 240, 178, 2 if last else 1, Pal.YELLOW if last else Pal.CYAN)
+	var info := ""
+	if conn_lost != "":
+		info = conn_lost
+	elif peer_left:
+		info = "EL RIVAL SE FUE"
+	elif rival_wants_again and not waiting_again:
+		info = "EL RIVAL ESTA LISTO!"
+	elif waiting_again:
+		info = "ESPERANDO AL RIVAL..."
+	if info != "":
+		PixelFont.draw_text_centered(ci, info, 240, 208, 1, Pal.CYAN)
+	ui.draw(ci)
+
+
 func _draw_results(ci: CanvasItem) -> void:
+	if Game.tour_active and show_table:
+		_draw_tour_table(ci)
+		return
+	var tour := Game.tour_active
 	Ui.draw_panel(ci, Rect2(100, 30, 280, 220), Color(0, 0, 0, 0.9), Pal.LIGHT_BLUE)
-	PixelFont.draw_text_centered(ci, "CLASIFICACION FINAL", 240, 40, 2, Pal.YELLOW)
+	PixelFont.draw_text_centered(ci, "CLASIFICACION FINAL", 240, 36 if tour else 40, 2, Pal.YELLOW)
+	if tour:
+		PixelFont.draw_text_centered(ci, "%s - CARRERA %d DE %d" % [track.title, Game.tour_round + 1, Game.tour_rounds()], 240, 52, 1, Pal.LIGHT_GREY)
 	PixelFont.draw_text(ci, "POS", Vector2(118, 64), 1, Pal.LIGHT_GREY)
 	PixelFont.draw_text(ci, "PILOTO", Vector2(146, 64), 1, Pal.LIGHT_GREY)
 	PixelFont.draw_text(ci, "TIEMPO", Vector2(250, 64), 1, Pal.LIGHT_GREY)
-	PixelFont.draw_text(ci, "MEJOR V.", Vector2(316, 64), 1, Pal.LIGHT_GREY)
+	PixelFont.draw_text(ci, "PUNTOS" if tour else "MEJOR V.", Vector2(316, 64), 1, Pal.LIGHT_GREY)
 	var y := 78.0
 	for r in results:
 		var id := int(r["id"])
@@ -629,7 +722,12 @@ func _draw_results(ci: CanvasItem) -> void:
 		PixelFont.draw_text(ci, str(int(r["pos"])), Vector2(130, y), 1, col)
 		PixelFont.draw_text(ci, name, Vector2(146, y), 1, col)
 		PixelFont.draw_text(ci, t, Vector2(250, y), 1, col)
-		PixelFont.draw_text(ci, Ui.format_time(float(r["best"])), Vector2(316, y), 1, col)
+		if tour:
+			var pos := int(r["pos"])
+			var pts: int = RaceSim.POINTS[pos - 1] if pos >= 1 and pos <= RaceSim.POINTS.size() else 0
+			PixelFont.draw_text(ci, "+%d" % pts, Vector2(324, y), 1, Pal.LIGHT_GREEN)
+		else:
+			PixelFont.draw_text(ci, Ui.format_time(float(r["best"])), Vector2(316, y), 1, col)
 		y += 14.0
 	var note := ""
 	if conn_lost != "":
@@ -637,7 +735,7 @@ func _draw_results(ci: CanvasItem) -> void:
 	elif peer_left:
 		note = "EL RIVAL SE FUE"
 	elif rival_wants_again and not waiting_again:
-		note = "EL RIVAL QUIERE LA REVANCHA!"
+		note = "EL RIVAL ESTA LISTO!" if tour else "EL RIVAL QUIERE LA REVANCHA!"
 	elif waiting_again:
 		note = "ESPERANDO AL RIVAL..."
 	if note != "":

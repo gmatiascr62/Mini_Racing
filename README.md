@@ -2,7 +2,7 @@
 
 Juego de carreras retro de autitos tipo Fórmula 1 para Android, inspirado en los
 juegos de Commodore 64. Vista desde arriba con la cámara siguiendo a tu auto,
-6 autos, 3 vueltas, en Indianápolis, Monza, el viejo Hockenheim o Interlagos. Hecho con **Godot 4.3**
+6 autos, 3 vueltas, en Indianápolis, Monza, el viejo Hockenheim, Interlagos o Le Mans, en carreras sueltas o en un torneo. Hecho con **Godot 4.3**
 (renderer GL Compatibility).
 
 ![Menú](docs/menu.png) ![Carrera](docs/race.png)
@@ -45,6 +45,11 @@ En el menú, el botón **< PISTA: ... >** cambia entre:
   tribunas donde están las reales (recta principal, S do Senna, Curva do Sol,
   Reta Oposta y Junção), boxes del lado de adentro de la recta y el **lago**
   junto a la Descida do Lago.
+- **LE MANS**: el Circuito de la Sarthe calcado del mapa, en sentido horario:
+  largada, curva y chicana Dunlop, las Esses, Tertre Rouge, la recta de las
+  Hunaudières (Mulsanne) con sus dos chicanas, Mulsanne, Indianapolis,
+  Arnage, las curvas Porsche y las chicanas Ford. Es enorme: una vuelta dura
+  más de un minuto y la carrera unos 3 minutos y medio.
 
 La pista elegida se guarda en el celular. En online la elige quien **crea** la
 partida. Las dos están rodeadas por un alambrado que hace de pared.
@@ -55,6 +60,21 @@ que viene. La cámara sigue hacia dónde avanza el auto (no hacia dónde apunta
 la trompa), y gira suavemente para que un derrape o un choque no sacudan la
 pantalla. Arriba a la derecha hay un **minimapa** con toda la pista y un punto
 por auto (el tuyo titila).
+
+## Torneo
+
+Un torneo es una carrera en cada pista, en orden (Indianápolis, Monza,
+Hockenheim, Interlagos y Le Mans). En cada carrera el ganador suma **6
+puntos**, el segundo 5, y así hasta el último, que suma **1 punto**.
+
+- **TORNEO VS CPU**: vos contra los 5 autos de la computadora.
+- **CREAR TORNEO** (online): como crear una partida, pero la sala sigue de
+  pista en pista; la próxima carrera arranca cuando los dos tocan
+  **SIGUIENTE**. El otro jugador entra con **UNIRSE A PARTIDA** y el código.
+
+Al terminar cada carrera se ve la clasificación con los puntos ganados, y con
+**TABLA** el campeonato acumulado y la próxima pista. Después de la última,
+la tabla final muestra al **campeón**. Salir al menú abandona el torneo.
 
 ## Nivel de dificultad
 

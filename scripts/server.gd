@@ -32,6 +32,10 @@ class Room:
 	var level := RaceSim.DEFAULT_LEVEL
 	var idle_time := 0.0
 	var ended_sent := false
+	## Tournament: one race per circuit in Track.IDS order.
+	var tour := false
+	var tour_round := 0
+	var tour_points: Array = []
 
 
 var port := NetConfig.DEFAULT_PORT
@@ -140,6 +144,8 @@ func _handle(p: Peer, msg: Dictionary) -> void:
 			room.track_id = tid if tracks.has(tid) else Track.IDS[0]
 			room.level = clampi(int(msg.get("level", RaceSim.DEFAULT_LEVEL)), 0, RaceSim.LEVEL_NAMES.size() - 1)
 			room.laps = clampi(int(msg.get("laps", RaceSim.DEFAULT_LAPS)), 1, RaceSim.DEFAULT_LAPS)
+			if msg.get("tour", false) == true:
+				_reset_tour(room)
 			room.players[0] = p.id
 			rooms[room.code] = room
 			p.room_code = room.code
@@ -179,6 +185,11 @@ func _handle(p: Peer, msg: Dictionary) -> void:
 				if pid != 0 and not (peers[pid] as Peer).again:
 					ready = false
 			if ready:
+				if room.tour:
+					room.tour_round += 1
+					if room.tour_round >= Track.IDS.size():
+						_reset_tour(room)
+					room.track_id = Track.IDS[room.tour_round]
 				_start_race(room)
 			else:
 				for pid in room.players:
@@ -186,6 +197,21 @@ func _handle(p: Peer, msg: Dictionary) -> void:
 						_send(peers[pid], {"t": "again_req"})
 		"leave":
 			_leave_room(p)
+
+
+func _reset_tour(room: Room) -> void:
+	room.tour = true
+	room.tour_round = 0
+	room.tour_points = []
+	for i in range(RaceSim.CAR_COUNT):
+		room.tour_points.append(0)
+	room.track_id = Track.IDS[0]
+
+
+func _tour_info(room: Room) -> Variant:
+	if not room.tour:
+		return null
+	return {"round": room.tour_round, "rounds": Track.IDS.size(), "pts": room.tour_points}
 
 
 func _new_code() -> String:
@@ -218,7 +244,7 @@ func _start_race(room: Room) -> void:
 		p.steer = 0.0
 		p.ack = 0
 		p.again = false
-		_send(p, {"t": "start", "code": room.code, "slot": slot, "car": RaceSim.human_car_id(slot), "names": all_names, "laps": room.laps, "track": room.track_id, "level": room.level})
+		_send(p, {"t": "start", "code": room.code, "slot": slot, "car": RaceSim.human_car_id(slot), "names": all_names, "laps": room.laps, "track": room.track_id, "level": room.level, "tour": _tour_info(room)})
 	_log("room %s race started" % room.code)
 
 
@@ -263,9 +289,11 @@ func _tick_room(room: Room, dt: float) -> void:
 		room.state = "results"
 		room.idle_time = 0.0
 		var res := sim.results()
+		if room.tour:
+			room.tour_points = RaceSim.award(room.tour_points, res)
 		for pid in room.players:
 			if pid != 0:
-				_send(peers[pid], {"t": "end", "res": res})
+				_send(peers[pid], {"t": "end", "res": res, "tour": _tour_info(room)})
 		_log("room %s race finished" % room.code)
 
 

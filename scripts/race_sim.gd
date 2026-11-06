@@ -56,6 +56,8 @@ const LEVEL_NAMES := ["FACIL", "NORMAL", "DIFICIL"]
 const LEVEL_SPEED := [0.78, 0.89, 1.0]
 const LEVEL_CORNER := [0.8, 0.91, 1.0]
 const DEFAULT_LEVEL := 1
+## Tournament points by finishing position: the winner gets 6, the last 1.
+const POINTS := [6, 5, 4, 3, 2, 1]
 const AUTOPILOT := {"name": "AUTO", "vmax": 97.0, "corner": 1.0, "gain": 3.4, "look": 1.0, "apex": 5.0, "pass_dist": 28.0, "pass_gap": 10.0, "pass_side": 12.0}
 
 
@@ -501,6 +503,31 @@ func _check_race_end() -> void:
 ## FINISH_GRACE, more on long circuits (60% of a flat-out lap).
 func finish_grace() -> float:
 	return maxf(FINISH_GRACE, track.length / VMAX * 0.6)
+
+
+## Tournament: adds the points of one race (its results()) to the totals,
+## indexed by car id. Returns the new totals.
+static func award(totals: Array, race_results: Array) -> Array:
+	var out := totals.duplicate()
+	while out.size() < CAR_COUNT:
+		out.append(0)
+	for r in race_results:
+		var pos := int(r["pos"])
+		if pos >= 1 and pos <= POINTS.size():
+			out[int(r["id"])] = int(out[int(r["id"])]) + POINTS[pos - 1]
+	return out
+
+
+## Tournament standings: car ids ordered by points (ties: earlier car id).
+static func tour_order(totals: Array) -> Array:
+	var ids: Array = range(CAR_COUNT)
+	ids.sort_custom(func(a: int, b: int) -> bool:
+		var pa := int(totals[a]) if a < totals.size() else 0
+		var pb := int(totals[b]) if b < totals.size() else 0
+		if pa != pb:
+			return pa > pb
+		return a < b)
+	return ids
 
 
 ## Car ids ordered by race position.

@@ -18,6 +18,15 @@ var online_names: Array = []
 var online_code := ""
 var online_laps := RaceSim.DEFAULT_LAPS
 var online_level := RaceSim.DEFAULT_LEVEL
+## Tournament: one race on every circuit in Track.IDS order, points from
+## RaceSim.POINTS. Offline it is kept here; online the server keeps it and
+## sends it with every start/end.
+var lobby_tour := false
+var tour_active := false
+var tour_round := 0
+var tour_points: Array = []
+## Points before the race being shown (to show what each car just won).
+var tour_points_before: Array = []
 
 
 func _ready() -> void:
@@ -49,10 +58,19 @@ func _ready() -> void:
 			set_track(a.substr(8))
 		elif a.begins_with("--url="):
 			server_url = a.substr(6)
+		elif a.begins_with("--laps="):
+			debug_laps = int(a.substr(7))
+		elif a.begins_with("--tour="):
+			# Debug: start inside an offline tournament at this round.
+			tour_active = true
+			tour_round = int(a.substr(7))
+			tour_points = [3, 7, 9, 2, 5, 4]
+			set_track(Track.IDS[tour_round], false)
 
 
 var autodrive := false
 var debug_code := ""
+var debug_laps := 0
 var _shot_path := ""
 var _shot_frames := 120
 var _frame := 0
@@ -76,6 +94,11 @@ func apply_start(msg: Dictionary) -> void:
 	online_laps = int(msg.get("laps", RaceSim.DEFAULT_LAPS))
 	online_level = int(msg.get("level", RaceSim.DEFAULT_LEVEL))
 	online_code = str(msg.get("code", online_code))
+	var tour = msg.get("tour", null)
+	tour_active = tour is Dictionary
+	if tour_active:
+		tour_round = int(tour.get("round", 0))
+		tour_points = (tour.get("pts", []) as Array).map(func(v) -> int: return int(v))
 	set_track(str(msg.get("track", Track.IDS[0])), false)
 
 
@@ -94,6 +117,34 @@ func next_track() -> void:
 	var i := Track.IDS.find(track_id)
 	set_track(Track.IDS[(i + 1) % Track.IDS.size()])
 	save_settings()
+
+
+func tour_rounds() -> int:
+	return Track.IDS.size()
+
+
+## Starts an offline tournament on the first circuit.
+func start_tournament() -> void:
+	mode = "offline"
+	tour_active = true
+	tour_round = 0
+	tour_points = []
+	for i in range(RaceSim.CAR_COUNT):
+		tour_points.append(0)
+	set_track(Track.IDS[0], false)
+	goto("race")
+
+
+## Offline tournament: goes to the next circuit, or ends it after the last.
+func next_tour_race() -> void:
+	tour_round += 1
+	if tour_round >= tour_rounds():
+		tour_active = false
+		set_track(track_id)
+		goto("menu")
+		return
+	set_track(Track.IDS[tour_round], false)
+	get_tree().reload_current_scene()
 
 
 func next_level() -> void:
@@ -120,4 +171,8 @@ func save_settings() -> void:
 
 
 func goto(scene: String) -> void:
+	if scene == "menu" and tour_active:
+		# Leaving a tournament abandons it.
+		tour_active = false
+		set_track(track_id)
 	get_tree().change_scene_to_file("res://scenes/%s.tscn" % scene)

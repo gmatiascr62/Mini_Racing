@@ -42,6 +42,7 @@ func _initialize() -> void:
 		test_offline_race(false)
 		test_offline_race(true)
 	test_levels()
+	test_tournament()
 	# The online test races on Monza to cover track selection over the network.
 	track = Track.new("monza")
 	print("== online (server + 2 clients over WebSocket) ==")
@@ -62,7 +63,7 @@ func _initialize() -> void:
 
 func test_track() -> void:
 	print("== track ==")
-	check(track.length > 1800.0 and track.length < 4500.0, "track length %.0f px" % track.length)
+	check(track.length > 1800.0 and track.length < 7000.0, "track length %.0f px" % track.length)
 	var inside := true
 	for p in track.pts:
 		if p.x < 30 or p.x > track.world.x - 30 or p.y < 30 or p.y > track.world.y - 30:
@@ -153,6 +154,25 @@ func test_levels() -> void:
 		print("     %-8s winner %s" % [RaceSim.LEVEL_NAMES[lvl], ft(best)])
 		winners.append(best)
 	check(winners[0] > winners[1] and winners[1] > winners[2], "CPUs are slower on easier levels")
+
+
+func test_tournament() -> void:
+	print("== tournament points ==")
+	var res := [{"pos": 1, "id": 4}, {"pos": 2, "id": 2}, {"pos": 3, "id": 0}, {"pos": 4, "id": 1}, {"pos": 5, "id": 5}, {"pos": 6, "id": 3}]
+	var pts := RaceSim.award([], res)
+	check(pts == [4, 3, 5, 1, 6, 2], "6 points for the winner down to 1 for the last (%s)" % str(pts))
+	pts = RaceSim.award(pts, res)
+	check(int(pts[4]) == 12 and int(pts[3]) == 2, "points add up over the races")
+	check(RaceSim.tour_order(pts)[0] == 4 and RaceSim.tour_order(pts)[5] == 3, "championship order follows the points")
+	# A whole tournament on the server: a room created as a tournament walks
+	# through every circuit and keeps the points.
+	var srv := RaceServer.new()
+	var room := RaceServer.Room.new()
+	srv._reset_tour(room)
+	check(room.track_id == Track.IDS[0] and room.tour_points.size() == RaceSim.CAR_COUNT, "online tournament starts on %s" % Track.TITLES[Track.IDS[0]])
+	var info: Dictionary = srv._tour_info(room)
+	check(int(info["rounds"]) == Track.IDS.size(), "online tournament covers all %d circuits" % Track.IDS.size())
+	srv.free()
 
 
 ## Bang-bang steering bot (only full left / straight / full right, like the
