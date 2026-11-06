@@ -6,7 +6,7 @@ juegos de Commodore 64. Vista desde arriba con la cámara siguiendo a tu auto,
 (renderer GL Compatibility).
 
 ![Menú](docs/menu.png) ![Carrera](docs/race.png)
-![Largada](docs/countdown.png) ![Monza](docs/monza.png) ![Hockenheim](docs/hockenheim.png) ![Interlagos](docs/interlagos.png)
+![Largada](docs/countdown.png) ![Monza](docs/monza.png) ![Hockenheim](docs/hockenheim.png) ![Interlagos](docs/interlagos.png) ![Le Mans](docs/lemans.png)
 
 ## Descargar el APK
 
@@ -75,6 +75,8 @@ puntos**, el segundo 5, y así hasta el último, que suma **1 punto**.
 Al terminar cada carrera se ve la clasificación con los puntos ganados, y con
 **TABLA** el campeonato acumulado y la próxima pista. Después de la última,
 la tabla final muestra al **campeón**. Salir al menú abandona el torneo.
+
+![Torneo](docs/torneo.png)
 
 ## Nivel de dificultad
 

@@ -288,7 +288,7 @@ func _build_lemans_scenery() -> void:
 		stands.append(_stand_beside(ci, -1.0, Vector2(40, 40)))
 	stands.append(_stand_beside(4, -1.0, Vector2(40, 30)))
 	stands.append(_stand_beside(50, -1.0, Vector2(30, 40)))
-	var pit := _stand_beside(64, 1.0, Vector2(12, 70))
+	var pit := _stand_beside(64, 1.0, Vector2(70, 12))
 	scenery = {"stands": stands, "pit": pit, "trees": _plant_trees(stands, pit, [], 0.5, 160.0), "greens": []}
 
 
